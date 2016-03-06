@@ -123,8 +123,11 @@ public class SpaceGame implements IGame {
 									Network.server = new NetworkServer(7777);
 									Network.server.start();
 
+						        	Body.bodies = new Body[Body.bodies.length];
+						        	
 									Network.client = new LocalClient();
 									Network.client.connect("127.0.0.1", 7777, selectedShip);
+
 									
 		    						changeState(GameState.LOADING);
 								} catch (IOException e) {
@@ -210,7 +213,7 @@ public class SpaceGame implements IGame {
     
     void loadGame(){
     	Particle.particles.clear();
-    	if (host || (!host && !join)){ // if hosting or singleplayer
+    	if (!host && !join){ // if singleplayer
         	Body.bodies = new Body[Body.bodies.length];
         	
 			Ship s = new Ship(selectedShip);

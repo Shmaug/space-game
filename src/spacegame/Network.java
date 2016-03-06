@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -31,9 +32,9 @@ public class Network{
 	
 	public static void update(float delta){
     	// network update
-    	if (server == null && client != null && client.running && System.currentTimeMillis() - client.lastUpdateSent > 10)
+    	if (server == null && client != null && client.running)
 			client.sendPositionUpdate();
-    	if (server != null && server.running && System.currentTimeMillis() - server.lastUpdateSent > 10)
+    	if (server != null && server.running)
     		server.sendPositionUpdate();
 	}
 }
@@ -59,7 +60,7 @@ class NetworkServer{
 	 */
 	public void sendPositionUpdate(){
 		for (int i = 0; i < Ship.ships.length; i++){
-			if (Ship.ships[i] != null && Ship.ships[i].client != null){
+			if (Ship.ships[i] != null && Ship.ships[i].client != null && Ship.ships[i].client.running){
 				if (i != SpaceGame.myShip) // Don't send updates to ourself
 					Ship.ships[i].client.sendPositionUpdate();
 			}
@@ -81,6 +82,7 @@ class NetworkServer{
 						try {
 							// Try to receive a client
 							Socket sock = socket.accept();
+							sock.setTcpNoDelay(true);
 							System.out.println("Server: Accepted connection");
 							client = new ServerClient();
 							client.socket = sock;
@@ -103,53 +105,69 @@ class NetworkServer{
 								// Server full
 								try{
 									client.dataOut.writeInt(PacketType.PACKET_SERVER_FULL.ordinal());
+									client.dataOut.flush();
 									sock.close();
 								}catch(IOException e){
 									System.out.println("Server: Failed to refuse client (full) " + e);
 								}
 							} else {
 								try{
-									client.dataOut.writeInt(PacketType.PACKET_CONNECT.ordinal());
+									ByteArrayOutputStream bOut = new ByteArrayOutputStream();
+									DataOutputStream dOut = new DataOutputStream(bOut);
+									dOut.writeInt(PacketType.PACKET_CONNECT.ordinal());
 									// Send the player their ship id
-									client.dataOut.writeInt(ship.id);
+									dOut.writeInt(ship.id);
 									for (int i = 0; i < Ship.ships.length; i++)
 										if (Ship.ships[i] != null){
-											client.dataOut.writeInt(i);
-											client.dataOut.writeInt(Ship.ships[i].ShipType);
+											dOut.writeInt(i);
+											dOut.writeInt(Ship.ships[i].ShipType);
 										}
 									// Send the player other ship information
-									client.dataOut.writeInt(-1);
+									dOut.writeInt(-1);
+									client.dataOut.flush();
 
-									client.running = true;
+									// send data about all the bodies
+									for (int i = 0; i < Body.bodies.length; i++){
+										Body b = Body.bodies[i];
+										if (b != null){
+											dOut.writeInt(i);
+
+											dOut.writeBoolean(b instanceof Asteroid);
+											dOut.writeFloat(b.Position.x);
+											dOut.writeFloat(b.Position.y);
+											dOut.writeFloat(b.Velocity.x);
+											dOut.writeFloat(b.Velocity.y);
+											dOut.writeFloat(b.Rotation);
+											dOut.writeFloat(b.AngularVelocity);
+											dOut.writeFloat(b.Mass);
+											dOut.writeFloat(b.Radius);
+											dOut.writeBoolean(b.Anchored);
+											dOut.writeBoolean(b.Collidable);
+											dOut.writeBoolean(b.Gravity);
+											dOut.writeInt(b.zIndex);
+										}
+									}
+									dOut.writeInt(-1);
+									client.dataOut.flush();
+									
+									byte[] buf = bOut.toByteArray();
+									bOut.close();
+									System.out.println("Server: sending " + buf.length + " data");
+									client.dataOut.writeInt(buf.length);
+									client.dataOut.write(buf);
+									client.dataOut.flush();
+									
 									client.ship = ship;
 									Ship.ships[ship.id] = ship;
 									
 									System.out.println("Server: Connection " + ship.id + " established (" + client.dataIn.available() + ")");
 									
-									// send data about all the bodies
-									for (int i = 0; i < Body.bodies.length; i++){
-										Body b = Body.bodies[i];
-										if (b != null){
-											client.dataOut.writeInt(i);
-
-											client.dataOut.writeBoolean(b instanceof Asteroid);
-											client.dataOut.writeFloat(b.Position.x);
-											client.dataOut.writeFloat(b.Position.y);
-											client.dataOut.writeFloat(b.Velocity.x);
-											client.dataOut.writeFloat(b.Velocity.y);
-											client.dataOut.writeFloat(b.Rotation);
-											client.dataOut.writeFloat(b.AngularVelocity);
-											client.dataOut.writeFloat(b.Mass);
-											client.dataOut.writeFloat(b.Radius);
-											client.dataOut.writeBoolean(b.Anchored);
-											client.dataOut.writeBoolean(b.Collidable);
-											client.dataOut.writeBoolean(b.Gravity);
-											client.dataOut.writeInt(b.zIndex);
-										}
-									}
-									client.dataOut.writeInt(-1);
-									
-									client.start();
+									int ack = client.dataIn.readInt();
+									if (ack == 42){
+										client.start();
+										// TODO notify all Ship.ships that a new guy connected
+									}else
+										System.out.println("??? " + ack);
 								} catch (IOException e){
 									System.out.println("Server: Failed to finalize connection " + e);
 									try{
@@ -190,7 +208,6 @@ abstract class NetworkClient {
 	 * Ping, in nanoseconds
 	 */
 	public long ping;
-	public long lastPacket;
 	public Socket socket;
 	public DataInputStream dataIn;
 	public DataOutputStream dataOut;
@@ -214,6 +231,8 @@ abstract class NetworkClient {
  * @author Trevor
  */
 class ServerClient extends NetworkClient {
+	public long TimeItTakesForAPacketToGetToTheServerFromTheClient;
+	
 	public void sendPositionUpdate(){
 		try {
 			sendPacket(PacketType.PACKET_SERVER_UPDATE);
@@ -249,19 +268,8 @@ class ServerClient extends NetworkClient {
 			}
 			dOut.writeInt(-1);
 			
-			for (int i = 0; i < Body.bodies.length; i++){
-				Body b = Body.bodies[i];
-				if (b != null){
-					dOut.writeInt(i);
-					dOut.writeFloat(b.Position.x);
-					dOut.writeFloat(b.Position.y);
-					dOut.writeFloat(b.Velocity.x);
-					dOut.writeFloat(b.Velocity.y);
-					dOut.writeFloat(b.Rotation);
-					dOut.writeFloat(b.AngularVelocity);
-				}
-			}
-			dOut.writeInt(-1);
+			dOut.writeLong(System.currentTimeMillis()); // timestamp
+			dOut.writeLong(TimeItTakesForAPacketToGetToTheServerFromTheClient); // latency
 			break;
 		}
 		}
@@ -271,25 +279,16 @@ class ServerClient extends NetworkClient {
 		
 		dataOut.writeInt(buf.length);
 		dataOut.write(buf);
-
 		dataOut.flush();
 	}
 
 	@SuppressWarnings("incomplete-switch")
 	void receivePacket() throws IOException {
-		while (dataIn.available() == 0){
-			Thread.yield();
-			try {
-				Thread.sleep(5);
-			} catch (InterruptedException e) { if (!running) break;}
-		}
-		if (!running) return;
+		byte[] buf = new byte[dataIn.readInt()];
+		dataIn.read(buf, 0, buf.length);
 		
-		int len = dataIn.readInt();
-		byte[] data = new byte[len];
-		dataIn.read(data, 0, len);
-		
-		DataInputStream dIn = new DataInputStream(new ByteArrayInputStream(data));
+		try{
+		DataInputStream dIn = new DataInputStream(new ByteArrayInputStream(buf));
 		
 		PacketType type = PacketType.values()[dIn.readInt()];
 		switch (type){
@@ -312,20 +311,31 @@ class ServerClient extends NetworkClient {
 				ship.Health = health;
 				ship.Shield = shield;
 			}
+			
+			TimeItTakesForAPacketToGetToTheServerFromTheClient = System.currentTimeMillis() - dIn.readLong();
 			break;
 		}
 		}
+		} catch (EOFException e){
+			System.out.println("Server: Got malformed packet (" + buf.length + " bytes) at " + System.currentTimeMillis());
+			e.printStackTrace();
+			if (buf.length == 0)
+				throw new IOException("Malformed packet");
+		}
+		
 	}
 	
 	public void start(){
 		// Start the client's update thread (receive data from client)
 		receiveThread = new Thread(){
 			public void run(){
+				running = true;
 				while (running && !socket.isClosed()){
 					try {
 						receivePacket();
 					} catch (IOException e) {
 						System.out.println("Server: Failed to communicate with client (" + ship.id + ")");
+						e.printStackTrace();
 						Ship.ships[ship.id] = null;
 						running = false;
 						try {
@@ -337,7 +347,7 @@ class ServerClient extends NetworkClient {
 		};
 		receiveThread.start();
 	}
-
+	
 	public void stop(){
 		running = false;
 		if (receiveThread != null)
@@ -349,6 +359,8 @@ class ServerClient extends NetworkClient {
 				System.out.println("Client: Failed to close socket");
 				e.printStackTrace();
 			}
+		if (ship != null)
+			Ship.ships[ship.id] = null;
 	}
 }
 
@@ -359,14 +371,14 @@ class ServerClient extends NetworkClient {
 class LocalClient extends NetworkClient {
 	boolean receiving = false;
 	
-	long lastUpdateSent = 0;
+	long TimeItTakesForAPacketToGetToTheClientFromTheServer;
+	
 	public void sendPositionUpdate(){
 		try {
 			sendPacket(PacketType.PACKET_CLIENT_UPDATE);
 		} catch (IOException e) {
 			stop();
 		}
-		lastUpdateSent = System.currentTimeMillis();
 	}
 	
 	@SuppressWarnings("incomplete-switch")
@@ -390,13 +402,16 @@ class LocalClient extends NetworkClient {
 			dOut.writeByte(tf);
 			dOut.writeFloat(ship.Health);
 			dOut.writeFloat(ship.Shield);
+			
+			dOut.writeLong(System.currentTimeMillis()); // timestamp
 			break;
 		}
-
+		
+		
 		byte[] buf = bOut.toByteArray();
 		dOut.close();
 		bOut.close();
-		
+
 		dataOut.writeInt(buf.length);
 		dataOut.write(buf);
 		dataOut.flush();
@@ -404,19 +419,14 @@ class LocalClient extends NetworkClient {
 	
 	@SuppressWarnings("incomplete-switch")
 	public void receivePacket() throws IOException{
-		while (dataIn.available() == 0){
-			Thread.yield();
-			try {
-				Thread.sleep(5);
-			} catch (InterruptedException e) { if (!running) break;}
-		}
-		if (!running) return;
+		byte[] buf = new byte[dataIn.readInt()];
+		if (buf.length == 0)
+			while (buf.length == 0)
+				buf = new byte[dataIn.readInt()];
+		dataIn.read(buf, 0, buf.length);
 		
-		int len = dataIn.readInt();
-		byte[] data = new byte[len];
-		dataIn.read(data, 0, len);
-		
-		DataInputStream dIn = new DataInputStream(new ByteArrayInputStream(data));
+		try{
+		DataInputStream dIn = new DataInputStream(new ByteArrayInputStream(buf));
 		
 		PacketType type = PacketType.values()[dIn.readInt()];
 		switch (type){
@@ -442,23 +452,17 @@ class LocalClient extends NetworkClient {
 					Ship.ships[i].Shield = shield;
 				}
 			}
-			i = 0;
-			while ((i = dIn.readInt()) != -1){
-				Vector2 pos = new Vector2(dIn.readFloat(), dIn.readFloat());
-				Vector2 vel = new Vector2(dIn.readFloat(), dIn.readFloat());
-				float rot = dIn.readFloat();
-				float angvel = dIn.readFloat();
-
-				Body b = Body.bodies[i];
-				if (b != null){
-					b.Position = pos;
-					b.Velocity = vel;
-					b.Rotation = rot;
-					b.AngularVelocity = angvel;
-				}
-			}
+			TimeItTakesForAPacketToGetToTheClientFromTheServer = System.currentTimeMillis() - dIn.readLong();
+			long TimeItTakesForAPacketToGetToTheServerFromTheClient = dIn.readLong();
+			ping = TimeItTakesForAPacketToGetToTheClientFromTheServer + TimeItTakesForAPacketToGetToTheServerFromTheClient;
 			break;
 		}
+		}
+		} catch (EOFException e){
+			System.out.println("Client: Got malformed packet (" + buf.length + " bytes) at " + System.currentTimeMillis());
+			e.printStackTrace();
+			if (buf.length == 0) // server fucked up real good
+				throw new IOException("Malformed packet");
 		}
 	}
 	
@@ -480,23 +484,26 @@ class LocalClient extends NetworkClient {
 				public void run(){
 					try {
 						socket = new Socket(host, port);
+						socket.setTcpNoDelay(true);
+						System.out.println("Client: connected to " + host);
 						dataIn = new DataInputStream(socket.getInputStream());
 						dataOut = new DataOutputStream(socket.getOutputStream());
 						
-						System.out.println("Client: connected to " + host);
 						dataOut.writeInt(selectedShip);
+						dataOut.flush();
 						
+						byte[] buf = new byte[dataIn.readInt()];
+						dataIn.read(buf, 0, buf.length);
+						DataInputStream dIn = new DataInputStream(new ByteArrayInputStream(buf));
 						// Receive connection data
-						
-						// Receive connection data
-						if (dataIn.readInt() == 0){
+						if (dIn.readInt() == 0){
 							// Receive player data
-							int id = dataIn.readInt();
+							int id = dIn.readInt();
 
 							Ship.ships = new Ship[Ship.ships.length]; // reset ships
 							int i = 0;
-							while ((i = dataIn.readInt()) != -1)
-								Ship.ships[i] = new Ship(dataIn.readInt());
+							while ((i = dIn.readInt()) != -1)
+								Ship.ships[i] = new Ship(dIn.readInt());
 							
 							Ship.ships[id] = new Ship(selectedShip);
 							ship = Ship.ships[id];
@@ -507,39 +514,42 @@ class LocalClient extends NetworkClient {
 							// Receive body data
 							i = 0;
 							Body.bodies = new Body[Body.bodies.length];
-							while ((i = dataIn.readInt()) != -1){
+							while ((i = dIn.readInt()) != -1){
 								Body b = new Body();
-								if (dataIn.readBoolean())
+								if (dIn.readBoolean())
 									b = new Asteroid(0, 0);
 								else
 									b.sprite = ContentLoader.planetTexture;
-								b.Position = new Vector2(dataIn.readFloat(), dataIn.readFloat());
-								b.Velocity = new Vector2(dataIn.readFloat(), dataIn.readFloat());
-								b.Rotation = dataIn.readFloat();
-								b.AngularVelocity = dataIn.readFloat();
-								b.Mass = dataIn.readFloat();
-								b.Radius = dataIn.readFloat();
-								b.Anchored = dataIn.readBoolean();
-								b.Collidable = dataIn.readBoolean();
-								b.Gravity = dataIn.readBoolean();
-								b.zIndex = dataIn.readInt();
+								b.Position = new Vector2(dIn.readFloat(), dIn.readFloat());
+								b.Velocity = new Vector2(dIn.readFloat(), dIn.readFloat());
+								b.Rotation = dIn.readFloat();
+								b.AngularVelocity = dIn.readFloat();
+								b.Mass = dIn.readFloat();
+								b.Radius = dIn.readFloat();
+								b.Anchored = dIn.readBoolean();
+								b.Collidable = dIn.readBoolean();
+								b.Gravity = dIn.readBoolean();
+								b.zIndex = dIn.readInt();
 								Body.bodies[i] = b;
 							}
 						}
+						dIn.close();
 						
 						((SpaceGame)Main.gameWindow.gamePanel.game).changeState(GameState.INGAME);
 						
-						System.out.println("Client: Established connection (" + dataIn.available() + ")");
+						System.out.println("Client: Established connection");
+						
+						dataOut.writeInt(42); // Ready to receive data
+						dataOut.flush();
 
 						// MAIN CLIENT LOOP
 						running = true;
 						while (!socket.isClosed() && running) {
 							try {
 								receivePacket();
-								ping = System.currentTimeMillis() - lastPacket;
-								lastPacket = System.currentTimeMillis();
 							} catch (IOException e) {
 								System.out.println("Client: Error: " + e.toString());
+								e.printStackTrace();
 								running = false;
 								try {
 									socket.close();
@@ -551,7 +561,7 @@ class LocalClient extends NetworkClient {
 						}
 					} catch (IOException e) {
 						running = false;
-						System.out.println("Client: Failed to connect");
+						e.printStackTrace();
 						((SpaceGame)Main.gameWindow.gamePanel.game).changeState(GameState.CONNECTION_FAILED);
 					}
 				}

@@ -152,7 +152,7 @@ public class Ship extends Body {
 			
 			/*
 			if (Network.server != null)=
-				Network.server.echoAll(); TODO send data about damage
+				Network.server.echoAll(); TODO tell all clients that i took damage
 			*/
 		}
 	}

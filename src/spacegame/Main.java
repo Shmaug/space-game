@@ -2,6 +2,8 @@ package spacegame;
 
 
 import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
+
 import javax.swing.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
@@ -48,6 +50,8 @@ class GamePanel extends JPanel{
     
     float timer = 0;
     
+    long lastp = 0;
+    float ptimer = 0;
     public void paintComponent(Graphics g){
     	Main.ScreenWidth = getWidth();
     	Main.ScreenHeight = getHeight();
@@ -78,8 +82,14 @@ class GamePanel extends JPanel{
     	try { localip = InetAddress.getLocalHost().getHostAddress(); } catch (Exception e ) { }
     	if (Network.server != null)
 			g2d.drawString("HOSTING AT " + localip , 175, Main.ScreenHeight - 10);
-		else if (Network.client != null)
-        	g2d.drawString(Network.client.ping + "ms" , 175, Main.ScreenHeight - 10);
+		else if (Network.client != null){
+        	g2d.drawString(lastp + "ms" , 175, Main.ScreenHeight - 10);
+        	ptimer += delta;
+        	if (ptimer > .5f){
+        		lastp = Network.client.ping;
+        		ptimer = 0;
+        	}
+		}
     	
     	g2d.dispose();
     	
@@ -123,20 +133,24 @@ public class Main extends JFrame implements KeyListener, MouseListener, MouseMot
     }
 
     public void keyPressed( KeyEvent e ) {
-        char c = e.getKeyChar();
-        if ( c != KeyEvent.CHAR_UNDEFINED )
-            Input.keys[e.getKeyCode()] = true;
+        if (e.getKeyCode() < Input.keys.length)
+        	Input.keys[e.getKeyCode()] = true;
         
     	if (Input.Typing){
-	    	int i = (int)c;
-	    	if (i == 10)
-    			gameWindow.gamePanel.game.EnterPressed();
-	    	else if (i >= 32 && i < 127)
-	    		Input.Typed = Input.Typed + c;
-	    	else if (i == 8)
-	    		if (Input.Typed.length() > 0)
-	    			Input.Typed = Input.Typed.substring(0, Input.Typed.length() - 1);
-			
+	    	int i = e.getKeyCode();
+	    	if (i == 86 && Input.keys[17])
+				try {
+					Input.Typed += (String)Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
+				} catch (Exception e1) { }
+			else{
+		    	if (i == 10)
+	    			gameWindow.gamePanel.game.EnterPressed();
+		    	else if (i >= 32 && i < 127)
+		    		Input.Typed += e.getKeyChar();
+		    	else if (i == 8)
+		    		if (Input.Typed.length() > 0)
+		    			Input.Typed = Input.Typed.substring(0, Input.Typed.length() - 1);
+	    	}
 	    }
     }
 
