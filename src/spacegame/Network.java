@@ -15,7 +15,10 @@ enum PacketType{
 	PACKET_CLIENT_UPDATE,		// client->server ship position/rotation/etc
 	PACKET_SERVER_UPDATE,		// server->client ship positions/rotations/etc
 	PACKET_SHIP_CHANGE,			// (both ways)    ship change
-	PACKET_DAMAGE,			// (both ways)    ship take damage
+	PACKET_DEATH,				// (both ways)    a client died
+	PACKET_RESPAWN,				// (both ways)    a client respawned
+	PACKET_NEW_CLIENT,			// (both ways)    a client connected
+	PACKET_CLIENT_DISCONNECT,	// (both ways)    a client disconnected
 }
 
 /**
@@ -53,6 +56,46 @@ class NetworkServer{
 	
 	public NetworkServer(int port) throws IOException{
 		socket = new ServerSocket(port);
+	}
+	
+	/*
+	 * Notify all clients that a ship respawned
+	 */
+	public void respawnShip(int id){
+		for (int i = 0; i < Ship.ships.length; i++){
+			if (Ship.ships[i] != null && Ship.ships[i].client != null && Ship.ships[i].client.running){
+				if (i != SpaceGame.myShip)
+					try {
+						Ship.ships[i].client.sendPacket(PacketType.PACKET_RESPAWN, id);
+					} catch (IOException e) { }
+			}
+		}
+	}
+	/*
+	 * Notify all clients that a ship died
+	 */
+	public void killShip(int id){
+		for (int i = 0; i < Ship.ships.length; i++){
+			if (Ship.ships[i] != null && Ship.ships[i].client != null && Ship.ships[i].client.running){
+				if (i != SpaceGame.myShip)
+					try {
+						Ship.ships[i].client.sendPacket(PacketType.PACKET_DEATH, id);
+					} catch (IOException e) { }
+			}
+		}
+	}
+	/*
+	 * Notify all clients that a ship connected
+	 */
+	public void sendConnection(int id){
+		for (int i = 0; i < Ship.ships.length; i++){
+			if (Ship.ships[i] != null && Ship.ships[i].client != null && Ship.ships[i].client.running){
+				if (i != SpaceGame.myShip)
+					try {
+						Ship.ships[i].client.sendPacket(PacketType.PACKET_NEW_CLIENT, id);
+					} catch (IOException e) { }
+			}
+		}
 	}
 	
 	/*
@@ -240,9 +283,13 @@ class ServerClient extends NetworkClient {
 			stop();
 		}
 	}
+
+	public void sendPacket(PacketType type) throws IOException{
+		sendPacket(type, -1);
+	}
 	
 	@SuppressWarnings("incomplete-switch")
-	void sendPacket(PacketType type) throws IOException{
+	public void sendPacket(PacketType type, int id) throws IOException{
 		ByteArrayOutputStream bOut = new ByteArrayOutputStream();
 		DataOutputStream dOut = new DataOutputStream(bOut);
 		
@@ -270,6 +317,14 @@ class ServerClient extends NetworkClient {
 			
 			dOut.writeLong(System.currentTimeMillis()); // timestamp
 			dOut.writeLong(TimeItTakesForAPacketToGetToTheServerFromTheClient); // latency
+			break;
+		}
+		case PACKET_DEATH:{
+			dOut.writeInt(id);
+			break;
+		}
+		case PACKET_RESPAWN:{
+			dOut.writeInt(id);
 			break;
 		}
 		}
@@ -315,6 +370,12 @@ class ServerClient extends NetworkClient {
 			TimeItTakesForAPacketToGetToTheServerFromTheClient = System.currentTimeMillis() - dIn.readLong();
 			break;
 		}
+		case PACKET_RESPAWN:
+			ship.respawn();
+			Network.server.respawnShip(ship.id); // TODO tell server not to respawn self
+			// TODO new connection
+			// TODO ship death
+			break;
 		}
 		} catch (EOFException e){
 			System.out.println("Server: Got malformed packet (" + buf.length + " bytes) at " + System.currentTimeMillis());
@@ -381,8 +442,12 @@ class LocalClient extends NetworkClient {
 		}
 	}
 	
-	@SuppressWarnings("incomplete-switch")
 	public void sendPacket(PacketType type) throws IOException{
+		sendPacket(type, -1);
+	}
+	
+	@SuppressWarnings("incomplete-switch")
+	public void sendPacket(PacketType type, int id) throws IOException{
 		ByteArrayOutputStream bOut = new ByteArrayOutputStream();
 		DataOutputStream dOut = new DataOutputStream(bOut);
 		
@@ -406,6 +471,8 @@ class LocalClient extends NetworkClient {
 			dOut.writeLong(System.currentTimeMillis()); // timestamp
 			break;
 		}
+		case PACKET_RESPAWN:
+			break;
 		
 		
 		byte[] buf = bOut.toByteArray();
@@ -456,6 +523,16 @@ class LocalClient extends NetworkClient {
 			long TimeItTakesForAPacketToGetToTheServerFromTheClient = dIn.readLong();
 			ping = TimeItTakesForAPacketToGetToTheClientFromTheServer + TimeItTakesForAPacketToGetToTheServerFromTheClient;
 			break;
+		}
+		case PACKET_DEATH:{
+			int id = dIn.readInt();
+			if (Ship.ships[id].Health > 0) // don't wanna duplicate the explode animation
+				Ship.ships[id].takeDamage(Ship.ships[id].MaxHealth + Ship.ships[id].MaxShield);
+			break;
+		}
+		case PACKET_RESPAWN:{
+			int id = dIn.readInt();
+			Ship.ships[id].respawn();
 		}
 		}
 		} catch (EOFException e){

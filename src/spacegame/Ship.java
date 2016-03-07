@@ -2,6 +2,7 @@ package spacegame;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
+import java.io.IOException;
 
 public class Ship extends Body {
 	public static Ship[] ships = new Ship[32];
@@ -122,11 +123,25 @@ public class Ship extends Body {
 			ThrustPositions[i] = ThrustPositions[i].sub(new Vector2(sprite.getWidth() / 2, sprite.getHeight() / 2));
 	}
 	
+	public void respawn(){
+		Health = MaxHealth;
+		Shield = MaxShield;
+		Position = Vector2.Zero();
+		Velocity = Vector2.Zero();
+		Collidable = true;
+		
+		if (Network.server != null)
+			Network.server.respawnShip(id);
+		else if (Network.client != null)
+			try {
+				Network.client.sendPacket(PacketType.PACKET_RESPAWN);
+			} catch (IOException e) { }
+	}
 	/**
 	 * This method is created just to implement polymorphism
 	 * @param dmg Damage to take
 	 */
-	public void TakeDamage(float dmg){
+	public void takeDamage(float dmg){
 		TakeDamage(dmg, null);
 	}
 	/**
