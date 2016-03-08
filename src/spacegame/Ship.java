@@ -2,7 +2,6 @@ package spacegame;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
-import java.io.IOException;
 
 public class Ship extends Body {
 	public static Ship[] ships = new Ship[32];
@@ -126,7 +125,7 @@ public class Ship extends Body {
 	}
 	
 	/**
-	 * Respawns this ship, and notifies the server to tell all clients
+	 * Respawns this ships
 	 */
 	public void respawn(){
 		Health = MaxHealth;
@@ -134,13 +133,6 @@ public class Ship extends Body {
 		Position = new Vector2((float)Math.cos(Math.random() * Math.PI * 2), (float)Math.sin(Math.random() * Math.PI * 2)).mul((float)Math.random() * 1000);
 		Velocity = Vector2.Zero();
 		Collidable = true;
-		
-		if (Network.server != null && id == SpaceGame.myShip)
-			Network.server.respawnShip(id);
-		else if (Network.client != null)
-			try {
-				Network.client.sendPacket(PacketType.PACKET_RESPAWN);
-			} catch (IOException e) { }
 	}
 	/**
 	 * This method is created just to implement polymorphism

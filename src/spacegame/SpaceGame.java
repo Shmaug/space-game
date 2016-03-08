@@ -242,6 +242,12 @@ public class SpaceGame implements IGame {
     	respawnButton = new Button("RESPAWN", ContentLoader.AvenirBold.deriveFont(48f), new Vector2(.5f, .75f), new Vector2(-120, 0), new Vector2(240, 40), Color.orange, new Color(192, 57, 43)){
 			public void onClick(){
 				Ship.ships[myShip].respawn();
+				if (Network.server != null)
+					Network.server.respawnShip(myShip);
+				else if (Network.client != null)
+					try{
+						Network.client.sendPacket(PacketType.PACKET_RESPAWN);
+					} catch (IOException e) { }
 			}
 		};
     }

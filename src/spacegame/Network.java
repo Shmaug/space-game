@@ -64,7 +64,7 @@ class NetworkServer{
 	public void respawnShip(int id){
 		for (int i = 0; i < Ship.ships.length; i++){
 			if (Ship.ships[i] != null && Ship.ships[i].client != null && Ship.ships[i].client.running){
-				if (i != SpaceGame.myShip)
+				if (i != id)
 					try {
 						Ship.ships[i].client.sendPacket(PacketType.PACKET_RESPAWN, id);
 					} catch (IOException e) { }
@@ -77,7 +77,7 @@ class NetworkServer{
 	public void sendDeath(int id){
 		for (int i = 0; i < Ship.ships.length; i++){
 			if (Ship.ships[i] != null && Ship.ships[i].client != null && Ship.ships[i].client.running){
-				if (i != SpaceGame.myShip)
+				if (i != id)
 					try {
 						Ship.ships[i].client.sendPacket(PacketType.PACKET_DEATH, id);
 					} catch (IOException e) { }

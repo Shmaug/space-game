@@ -55,8 +55,6 @@ class ServerClient extends NetworkClient {
 		ByteArrayOutputStream bOut = new ByteArrayOutputStream();
 		DataOutputStream dOut = new DataOutputStream(bOut);
 
-		// TODO print when sending packets
-		
 		dOut.writeInt(type.ordinal());
 		switch (type){
 		case PACKET_SERVER_UPDATE:{
@@ -149,7 +147,7 @@ class ServerClient extends NetworkClient {
 		}
 		case PACKET_RESPAWN:
 			ship.respawn();
-			Network.server.respawnShip(ship.id);
+			Network.server.respawnShip(ship.id); // tell the server to tell the other clients
 			break;
 		case PACKET_BODY_REMOVE:
 			
@@ -275,7 +273,6 @@ class LocalClient extends NetworkClient {
 		
 		try{
 		DataInputStream dIn = new DataInputStream(new ByteArrayInputStream(buf));
-		
 		PacketType type = PacketType.values()[dIn.readInt()];
 		switch (type){
 		case PACKET_SERVER_UPDATE:{
@@ -314,8 +311,10 @@ class LocalClient extends NetworkClient {
 		}
 		case PACKET_RESPAWN:{
 			int id = dIn.readInt();
-			Ship.ships[id].respawn();
-			System.out.println("Client: " + id + " respawned!");
+			if (id != SpaceGame.myShip){
+				Ship.ships[id].respawn();
+				System.out.println("Client: " + id + " respawned!");
+			}
 			break;
 		}
 		case PACKET_BODY_ADD:{
