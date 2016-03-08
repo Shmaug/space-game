@@ -68,7 +68,8 @@ public class Body {
 		for (int i = 0; i < Body.bodies.length; i++){
 			if (Body.bodies[i] == null){
 				Body.bodies[i] = b;
-				// TODO tell all clients a new body was made
+				if (Network.server != null)
+					Network.server.sendBodyAdd(i);
 				break;
 			}
 		}
@@ -77,7 +78,8 @@ public class Body {
 		for (int i = 0; i < Body.bodies.length; i++){
 			if (Body.bodies[i] == b){
 				Body.bodies[i] = null;
-				// TODO tell all clients a body was removed
+				if (Network.server != null)
+					Network.server.sendBodyRemove(i);
 				break;
 			}
 		}

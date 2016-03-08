@@ -121,16 +121,21 @@ public class Ship extends Body {
 			GunPositions[i] = GunPositions[i].sub(new Vector2(sprite.getWidth() / 2, sprite.getHeight() / 2));
 		for (int i = 0; i < ThrustPositions.length; i++)
 			ThrustPositions[i] = ThrustPositions[i].sub(new Vector2(sprite.getWidth() / 2, sprite.getHeight() / 2));
+		
+		Position = new Vector2((float)Math.cos(Math.random() * Math.PI * 2), (float)Math.sin(Math.random() * Math.PI * 2)).mul((float)Math.random() * 1000);
 	}
 	
+	/**
+	 * Respawns this ship, and notifies the server to tell all clients
+	 */
 	public void respawn(){
 		Health = MaxHealth;
 		Shield = MaxShield;
-		Position = Vector2.Zero();
+		Position = new Vector2((float)Math.cos(Math.random() * Math.PI * 2), (float)Math.sin(Math.random() * Math.PI * 2)).mul((float)Math.random() * 1000);
 		Velocity = Vector2.Zero();
 		Collidable = true;
 		
-		if (Network.server != null)
+		if (Network.server != null && id == SpaceGame.myShip)
 			Network.server.respawnShip(id);
 		else if (Network.client != null)
 			try {
@@ -162,13 +167,12 @@ public class Ship extends Body {
 			
 			shieldRechargeCooldown = 2;
 			
-			if (Health <= 0)
+			if (Health <= 0){
 				Explode();
-			
-			/*
-			if (Network.server != null)=
-				Network.server.echoAll(); TODO tell all clients that i took damage
-			*/
+				
+				if (Network.server != null)
+					Network.server.sendDeath(id);
+			}
 		}
 	}
 	
