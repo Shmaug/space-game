@@ -319,7 +319,7 @@ class LocalClient extends NetworkClient {
 		}
 		case PACKET_BODY_ADD:{
 			// TODO read data about body
-			int id = dIn.readInt();
+			//int id = dIn.readInt();
 			break;
 		}
 		case PACKET_BODY_REMOVE:{
@@ -352,7 +352,7 @@ class LocalClient extends NetworkClient {
 			}
 	}
 	
-	public void connect(final String host, final int port, final int selectedShip){
+	public void connect(final String host, final int port, final int selectedShip, final String name){
 			receiveThread = new Thread(){
 				public void run(){
 					try {
@@ -363,6 +363,7 @@ class LocalClient extends NetworkClient {
 						dataOut = new DataOutputStream(socket.getOutputStream());
 						
 						dataOut.writeInt(selectedShip);
+						dataOut.writeUTF(name);
 						dataOut.flush();
 						
 						byte[] buf = new byte[dataIn.readInt()];
@@ -382,6 +383,7 @@ class LocalClient extends NetworkClient {
 							ship = Ship.ships[id];
 							ship.id = id;
 							SpaceGame.myShip = id;
+							ship.ClientName = name;
 							System.out.println("Client: I am " + id);
 							
 							// Receive body data

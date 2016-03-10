@@ -4,8 +4,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 enum PacketType{
 	PACKET_CONNECT,				// server->client server data
@@ -21,6 +24,18 @@ enum PacketType{
  	PACKET_BODY_ADD,
 }
 
+class ServerContainer{
+	String host;
+	int players;
+	int totalPlayers;
+	
+	ServerContainer(String ip, int p, int t){
+		host = ip;
+		players = p;
+		totalPlayers = t;
+	}
+}
+
 /**
  * The class that the rest of the code uses to do networking
  * @author Trevor
@@ -33,12 +48,65 @@ public class Network{
 	static Thread clientUpdateThread;
 	static Thread serverUpdateThread;
 	
+	private static boolean Scanning = false;
+	private static Thread scanThread;
+	public static ArrayList<ServerContainer> foundServers = new ArrayList<ServerContainer>();
+	
 	public static void update(float delta){
     	// network update
     	if (server == null && client != null && client.running)
 			client.sendPositionUpdate();
     	if (server != null && server.running)
     		server.sendPositionUpdate();
+	}
+	
+	public static void stopScanning(){
+		Scanning = false;
+		if (scanThread != null)
+			scanThread.interrupt();
+	}
+	
+	public static void scanForLocalServers(){
+		if (Scanning)
+			stopScanning();
+		foundServers.clear();
+		
+		Scanning = true;
+		
+		scanThread = new Thread(){
+			public void run(){
+				String localip = "";
+		    	try { localip = InetAddress.getLocalHost().getHostAddress(); } catch (Exception e ) { }
+				System.out.println(localip);
+				String[] numbers = localip.split("\\.");
+				localip = "";
+				for (int i = 0; i < numbers.length - 1; i++)
+					localip += numbers[i] + ".";
+		    	
+				for (int i = 0; i <= 255; i++){
+					if (!Scanning)
+						break;
+			    	
+					String ip = localip + i;
+					try{
+						System.out.println("Scanning " + ip);
+    					Socket s = new Socket();
+    					s.connect(new InetSocketAddress(ip, 7777), 10);
+    					DataOutputStream dOut = new DataOutputStream(s.getOutputStream());
+    					DataInputStream dIn = new DataInputStream(s.getInputStream());
+    					dOut.writeInt(-1);
+    					dOut.flush();
+    					// TODO we aren't getting any data here...
+    					int pc = dIn.readInt();
+    					int t = dIn.readInt();
+    					s.close();
+    					foundServers.add(new ServerContainer(ip, pc, t));
+						System.out.println("Found server at " + ip);
+					}catch(IOException e){ }
+				}
+			}
+		};
+		scanThread.start();
 	}
 }
 
@@ -161,6 +229,19 @@ class NetworkServer{
 							client.dataOut = new DataOutputStream(sock.getOutputStream());
 							
 							int stype = client.dataIn.readInt();
+							if (stype == -1){
+								// client is just pinging, send back some data, close the connection
+								int c = 0;
+								for (int i = 0; i < Ship.ships.length; i++)
+									if (Ship.ships[i] != null)
+										c++;
+								client.dataOut.writeInt(c);
+								client.dataOut.writeInt(Ship.ships.length);
+								client.dataOut.flush();
+								sock.close();
+								return;
+							}
+							String name = client.dataIn.readUTF();
 							
 							// Client connected, find a slot in Ship.ships and assign it
 							Ship ship = null;
@@ -169,6 +250,7 @@ class NetworkServer{
 									ship = new Ship(stype);
 									ship.client = client;
 									ship.id = i;
+									ship.ClientName = name;
 									break;
 								}
 							}
@@ -230,7 +312,7 @@ class NetworkServer{
 									client.ship = ship;
 									Ship.ships[ship.id] = ship;
 									
-									System.out.println("Server: Connection " + ship.id + " established (" + client.dataIn.available() + ")");
+									System.out.println("Server: Connection " + ship.id + " established (" + name+ ")");
 									
 									int ack = client.dataIn.readInt();
 									if (ack == 42){

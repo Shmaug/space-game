@@ -13,7 +13,7 @@ import javax.imageio.ImageIO;
  * @author Trevor
  */
 public class ContentLoader {
-	public static BufferedImage[] shipTextures = new BufferedImage[9];
+	public static BufferedImage[] shipTextures = new BufferedImage[7];
 	public static BufferedImage shieldTexture;
 	public static BufferedImage laserTexture;
 	public static BufferedImage spaceBGTexture;
@@ -27,6 +27,8 @@ public class ContentLoader {
 	public static BufferedImage explodeTexture0;
 	public static BufferedImage explodeTexture1;
 	
+	public static BufferedImage muzzleFlashTexture;
+	
 	public static Font Avenir;
 	public static Font AvenirBold;
 	public static Font AvenirDemi;
@@ -36,21 +38,22 @@ public class ContentLoader {
 	 */
 	public static void LoadContent(){
 		for (int i = 0; i < shipTextures.length; i++)
-			shipTextures[i] = loadImage("/resources/ship/ship" + i + ".png");
+			shipTextures[i] = 	loadImage("/resources/ship/ship" + i + ".png");
+
+		shieldTexture = 	 	loadImage("/resources/fx/shield.png");
+		spaceBGTexture =	 	loadImage("/resources/fx/space.png");
 		
-		shieldTexture = loadImage("/resources/fx/shield.png");
-		laserTexture = loadImage("/resources/particle/laser.png");
-		spaceBGTexture = loadImage("/resources/fx/space.png");
-		planetTexture = loadImage("/resources/body/planet.png");
-		asteroidTexture = loadImage("/resources/body/asteroid.png");
-		asteroidGibTexture = loadImage("/resources/particle/asteroidGib.png");
+		planetTexture = 		loadImage("/resources/body/planet.png");
+		asteroidTexture = 		loadImage("/resources/body/asteroid.png");
 		
-		explodeTexture0 = loadImage("/resources/particle/explode0.png");
-		explodeTexture1 = loadImage("/resources/particle/explode1.png");
+		asteroidGibTexture =	loadImage("/resources/particle/asteroidGib.png");
+		explodeTexture0 = 		loadImage("/resources/particle/explode0.png");
+		explodeTexture1 = 		loadImage("/resources/particle/explode1.png");
+		laserTexture = 			loadImage("/resources/particle/laser.png");
 		
-		Avenir = loadFont("/resources/font/Avenir.otf");
-		AvenirBold = loadFont("/resources/font/Avenir-Bold.otf");
-		AvenirDemi = loadFont("/resources/font/Avenir-Demi.otf");
+		Avenir = 				loadFont("/resources/font/Avenir.otf");
+		AvenirBold =			loadFont("/resources/font/Avenir-Bold.otf");
+		AvenirDemi =			loadFont("/resources/font/Avenir-Demi.otf");
 	}
 	
 	/**

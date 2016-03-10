@@ -33,6 +33,8 @@ public class SpaceGame implements IGame {
 	
 	boolean host = false;
 	boolean join = false;
+	String savedIP = "";
+	String savedName = "";
 	
     public void init() {
     	////// UI CREATION //////
@@ -86,28 +88,24 @@ public class SpaceGame implements IGame {
     	case SCREEN_SHIPSEL:
         	// SHIP SELECT //
         	shipSelectButtons = new Button[] {
-    			new Button("<", menuFontNormal, new Vector2(.5f, .5f), new Vector2(-340, 0), new Vector2(35, 40), Color.white, Color.orange){
+    			new Button("<", menuFontNormal, new Vector2(.25f, .5f), new Vector2(-160 - 40, 30/2), new Vector2(35, 30), Color.orange, Color.orange){
     				public void onClick(){
     					selectedShip--;
-    					shipSelectButtons[1].Visible = true;
-    					if (selectedShip < 0){
-    						selectedShip = 0;
-    						shipSelectButtons[0].Visible = false;
-    					}
+    					if (selectedShip < 0)
+    						selectedShip = ContentLoader.shipTextures.length - 1;
     				}
     			},
-    			new Button(">", menuFontNormal, new Vector2(.5f, .5f), new Vector2(300, 0), new Vector2(35, 40), Color.white, Color.orange){
+    			new Button(">", menuFontNormal, new Vector2(.25f, .5f), new Vector2(160, 30/2), new Vector2(35, 30), Color.orange, Color.orange){
     				public void onClick(){
     					selectedShip++;
-    					shipSelectButtons[0].Visible = true;
-    					if (selectedShip >= ContentLoader.shipTextures.length){
-    						selectedShip = ContentLoader.shipTextures.length - 1;
-    						shipSelectButtons[1].Visible = false;
-    					}
+    					if (selectedShip >= ContentLoader.shipTextures.length)
+    						selectedShip = 0;
     				}
     			},
-    			new Button("START", menuFontNormal, new Vector2(0.5f, .8f), new Vector2(-150/2, 0), new Vector2(150, 40), Color.white, Color.orange){
+    			new Button("START", menuFontNormal, new Vector2(1f, 1f), new Vector2(-250, -150), new Vector2(150, 40), Color.white, Color.orange){
     				public void onClick(){
+    					savedName = Input.Typed.substring(0);
+    					Input.Typed = "";
     					if (host || join){
 							if (Network.server != null){
 								Network.server.stopClient();
@@ -126,7 +124,7 @@ public class SpaceGame implements IGame {
 						        	Body.bodies = new Body[Body.bodies.length];
 						        	
 									Network.client = new LocalClient();
-									Network.client.connect("127.0.0.1", 7777, selectedShip);
+									Network.client.connect("127.0.0.1", 7777, selectedShip, savedName);
 
 									
 		    						changeState(GameState.LOADING);
@@ -138,7 +136,7 @@ public class SpaceGame implements IGame {
 							if (join){
 					    		// Connect to the server
 								Network.client = new LocalClient();
-								Network.client.connect(Input.Typed, 7777, selectedShip);
+								Network.client.connect(savedIP, 7777, selectedShip, savedName);
 								
 	    						changeState(GameState.LOADING);
 							}
@@ -146,7 +144,7 @@ public class SpaceGame implements IGame {
     						changeState(GameState.INGAME);
     				}
     			},
-    			new Button("BACK", menuFontNormal, new Vector2(0.5f, .8f), new Vector2(-135/2, 80), new Vector2(135, 40), Color.white, Color.orange){
+    			new Button("BACK", menuFontNormal, new Vector2(0, 1f), new Vector2(100, -150), new Vector2(135, 40), Color.white, Color.orange){
     				public void onClick(){
     					if (join)
         					changeState(GameState.SCREEN_JOIN);
@@ -157,26 +155,34 @@ public class SpaceGame implements IGame {
     				}
     			},
         	};
-    		shipSelectButtons[0].Visible = false;
+        	shipSelectButtons[2].Enabled = true;
+        	Input.Typed = "";
+        	Input.Typing = true;
     		break;
     	case SCREEN_JOIN:
-    		Input.Typing = true;
-    		Input.Typed = "";
     		joinScreenButtons = new Button[]{
     			new Button("NEXT", menuFontNormal, new Vector2(0.5f, .8f), new Vector2(-130/2, 0), new Vector2(130, 40), Color.white, Color.orange){
     				public void onClick(){
     					join = true;
+    					savedIP = Input.Typed.substring(0);
+    					Input.Typed = "";
     					changeState(GameState.SCREEN_SHIPSEL);
     				}
     			},
     			new Button("BACK", menuFontNormal, new Vector2(0.5f, .8f), new Vector2(-135/2, 80), new Vector2(135, 40), Color.white, Color.orange){
     				public void onClick(){
     					join = false;
+    		    		Network.stopScanning();
     					changeState(GameState.SCREEN_MAIN);
     				}
     			},
     		};
+    		joinScreenButtons[0].Enabled = true;
+
+    		Input.Typing = true;
+    		Input.Typed = "";
     		
+    		Network.scanForLocalServers();
     		break;
     	case SCREEN_HOST:
     		hostScreenButtons = new Button[]{
@@ -218,6 +224,7 @@ public class SpaceGame implements IGame {
         	
 			Ship s = new Ship(selectedShip);
 			Ship.ships[0] = s;
+			s.ClientName = savedName;
 			myShip = 0;
 			
     		// we are the server
@@ -353,6 +360,7 @@ public class SpaceGame implements IGame {
     	case SCREEN_SHIPSEL:
     		for (int i = 0; i < shipSelectButtons.length; i++)
     			shipSelectButtons[i].update(delta);
+    		shipSelectButtons[2].Enabled = Input.Typed.length() > 0;
     		
     		break;
     	case SCREEN_HOST:
@@ -363,7 +371,8 @@ public class SpaceGame implements IGame {
     	case SCREEN_JOIN:
     		for (int i = 0; i < joinScreenButtons.length; i++)
     			joinScreenButtons[i].update(delta);
-    		
+
+    		joinScreenButtons[0].Enabled = Input.Typed.length() > 0;
     		break;
     	case CONNECTION_FAILED:
     		for (int i = 0; i < connectionFailedScreenButtons.length; i++)
@@ -504,13 +513,108 @@ public class SpaceGame implements IGame {
 			g2d.setFont(menuFontBig);
 			
 			g2d.setColor(Color.white);
-			g2d.drawString("SELECT SHIP", Main.ScreenWidth / 2 - g2d.getFontMetrics(menuFontBig).stringWidth("SELECT SHIP") / 2 - 15, 200);
-			
-			g2d.drawImage(ContentLoader.shipTextures[selectedShip], Main.ScreenWidth / 2 - ContentLoader.shipTextures[selectedShip].getWidth() / 2, Main.ScreenHeight / 2 - ContentLoader.shipTextures[selectedShip].getHeight() / 2, null);
+			g2d.drawString("SELECT SHIP", Main.ScreenWidth / 2 - g2d.getFontMetrics(menuFontBig).stringWidth("SELECT SHIP") / 2 - 15, 100);
+
+			// draw circle around ship
+			g2d.setColor(Color.darkGray);
+			g2d.fillOval((int)(Main.ScreenWidth * .25f) - 150, (int)(Main.ScreenHeight * .5f) - 150, 300, 300);
+			// draw ship
+			g2d.drawImage(ContentLoader.shipTextures[selectedShip], (int)(Main.ScreenWidth * .25f) - ContentLoader.shipTextures[selectedShip].getWidth() / 2, Main.ScreenHeight / 2 - ContentLoader.shipTextures[selectedShip].getHeight() / 2, null);
     		
+			// get max ship stats
+			float maxHealth, maxShield, maxSpeed, maxThrust, maxFireRate, maxDamage, maxMass;
+			maxHealth = maxShield = maxSpeed = maxThrust = maxFireRate = maxDamage = maxMass = 0;
+			for (int i = 0; i < ContentLoader.shipTextures.length; i++){
+				Ship s = new Ship(i);
+				maxHealth = Math.max(s.MaxHealth, maxHealth);
+				maxShield = Math.max(s.MaxShield, maxHealth);
+				maxSpeed = Math.max(s.MaxSpeed, maxSpeed);
+				maxThrust = Math.max(s.Thrust, maxThrust);
+				maxFireRate = Math.max(s.FireRate, maxFireRate);
+				maxDamage = Math.max(s.Damage, maxDamage);
+				maxMass = Math.max(s.Mass, maxMass);
+			}
+			Ship s = new Ship(selectedShip);
+			
+			// draw ship stats
+			
+			int h2 = Math.max(Main.ScreenHeight / 2, 320);
+			int bx = (int)(Main.ScreenWidth * .4f + 400);
+			int by = h2 - 180;
+			int bw = Math.min(Main.ScreenWidth - bx - 20, 400);
+			int bh = 25;
+			
+			g2d.setColor(Color.white);
+			g2d.setFont(menuFontNormal);
+			g2d.drawString("HEALTH", Main.ScreenWidth * .4f, h2 - 150);
+			g2d.drawString(s.MaxHealth + "", bx + bw + 20, h2 - 150);
+			g2d.setColor(new Color(1f, .25f, .25f));
+			g2d.fillRect(bx, by, (int)(bw * (s.MaxHealth / maxHealth)), bh);
+			g2d.setColor(Color.white);
+			g2d.drawRect(bx, by, bw, bh);
+			by+=50;
+			
+			g2d.drawString("SHIELD", Main.ScreenWidth * .4f, h2 - 100);
+			g2d.drawString(s.MaxShield + "", bx + bw + 20, h2 - 100);
+			g2d.setColor(new Color(.25f, .25f, 1f));
+			g2d.fillRect(bx, by, (int)(bw * (s.MaxShield / maxShield)), bh);
+			g2d.setColor(Color.white);
+			g2d.drawRect(bx, by, bw, bh);
+			by+=50;
+			
+			g2d.drawString("MAX SPEED", Main.ScreenWidth * .4f, h2 - 50);
+			g2d.drawString(s.MaxSpeed + "m/s", bx + bw + 20, h2 - 50);
+			g2d.setColor(new Color(.25f, 1f, .25f));
+			g2d.fillRect(bx, by, (int)(bw * (s.MaxSpeed / maxSpeed)), bh);
+			g2d.setColor(Color.white);
+			g2d.drawRect(bx, by, bw, bh);
+			by+=50;
+			
+			g2d.drawString("THRUST", Main.ScreenWidth * .4f, h2);
+			g2d.drawString(s.Thrust/1000 + "kN", bx + bw + 20, h2);
+			g2d.setColor(Color.orange);
+			g2d.fillRect(bx, by, (int)(bw * (s.Thrust / maxThrust)), bh);
+			g2d.setColor(Color.white);
+			g2d.drawRect(bx, by, bw, bh);
+			by+=50;
+			
+			g2d.drawString("FIRE RATE", Main.ScreenWidth * .4f, h2 + 50);
+			g2d.drawString(s.FireRate + "/s", bx + bw + 20, h2 + 50);
+			g2d.setColor(new Color(1f, .15f, .15f));
+			g2d.fillRect(bx, by, (int)(bw * (s.FireRate / maxFireRate)), bh);
+			g2d.setColor(Color.white);
+			g2d.drawRect(bx, by, bw, bh);
+			by+=50;
+			
+			g2d.drawString("DAMAGE", Main.ScreenWidth * .4f, h2 + 100);
+			g2d.drawString(s.Damage + "", bx + bw + 20, h2 + 100);
+			g2d.setColor(new Color(1f, .15f, .15f));
+			g2d.fillRect(bx, by, (int)(bw * (s.Damage / maxDamage)), bh);
+			g2d.setColor(Color.white);
+			g2d.drawRect(bx, by, bw, bh);
+			by+=50;
+			
+			g2d.drawString("MASS", Main.ScreenWidth * .4f, h2 + 150);
+			g2d.drawString(s.Mass*1000 + "kg", bx + bw + 20, h2 + 150);
+			g2d.setColor(new Color(.15f, .15f, .15f));
+			g2d.fillRect(bx, by, (int)(bw * (s.Mass / maxMass)), bh);
+			g2d.setColor(Color.white);
+			g2d.drawRect(bx, by, bw, bh);
+			by+=50;
+			
     		for (int i = 0; i < shipSelectButtons.length; i++)
     			shipSelectButtons[i].draw(g2d);
-    		
+
+			g2d.setFont(menuFontNormal);
+			g2d.drawString("ENTER NAME:", Main.ScreenWidth / 2 - g2d.getFontMetrics(menuFontNormal).stringWidth("ENTER NAME:") / 2, Math.max(Main.ScreenHeight - 150, 600) - 60);
+			
+			g2d.setColor(Color.white);
+			g2d.drawRoundRect(Main.ScreenWidth / 2 - 275, Math.max(Main.ScreenHeight - 150, 600) - 45, 550, 55, 4, 4);
+			g2d.setColor(Color.orange);
+			if (Input.Typed.length() > 15)
+				Input.Typed = Input.Typed.substring(0, 15);
+			g2d.drawString(Input.Typed + (System.currentTimeMillis() / 300 % 2 == 0 ? "" : "_"), Main.ScreenWidth / 2 - g2d.getFontMetrics(menuFontNormal).stringWidth(Input.Typed) / 2, Math.max(Main.ScreenHeight - 150, 600));
+			
     		break;
     	case SCREEN_HOST:
 			g2d.setFont(menuFontBig);

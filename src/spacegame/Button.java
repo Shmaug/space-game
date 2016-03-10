@@ -20,7 +20,9 @@ public class Button {
 	Color textColor;
 	Color hovColor;
 	Font font;
-	boolean hover = false;
+	private boolean hover = false;
+	
+	public boolean Enabled = true;
 	
 	public boolean Visible = true;
 	
@@ -61,7 +63,7 @@ public class Button {
 				hover = Input.MousePosition.x > realPos.x && Input.MousePosition.x < realPos.x + size.x &&
 						Input.MousePosition.y > realPos.y - size.y && Input.MousePosition.y < realPos.y;
 			}
-			if (hover && Input.lastMouseButtons[0] && !Input.MouseButtons[0])
+			if (hover && Input.lastMouseButtons[0] && !Input.MouseButtons[0] && Enabled)
 				onClick();
 		}
 	}
@@ -75,15 +77,21 @@ public class Button {
 				g2d.drawImage(sprite, (int)realPos.x, (int)realPos.y, (int)size.x, (int)size.y, null);
 			}else{
 				g2d.setFont(font);
-				
-				g2d.setColor(Color.darkGray);
-				g2d.drawString(text, 
-						(int)realPos.x,
-						(int)realPos.y + 3);
-				g2d.setColor(textColor);
-				g2d.drawString(text, 
-						(int)realPos.x,
-						(int)realPos.y + (hover ? 1 : -1));
+				if (Enabled){
+					g2d.setColor(Color.darkGray);
+					g2d.drawString(text, 
+							(int)realPos.x,
+							(int)realPos.y + 3);
+					g2d.setColor(textColor);
+					g2d.drawString(text, 
+							(int)realPos.x,
+							(int)realPos.y + (hover ? 1 : -1));
+				}else{
+					g2d.setColor(Color.darkGray);
+					g2d.drawString(text, 
+							(int)realPos.x,
+							(int)realPos.y + 3);
+				}
 			}
 		}
 	}
