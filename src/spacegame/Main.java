@@ -90,6 +90,7 @@ class GamePanel extends JPanel{
         		ptimer = 0;
         	}
 		}
+		g2d.drawString(getWidth() + "x " + getHeight(), Main.ScreenWidth - 300, Main.ScreenHeight - 10);
     	
     	g2d.dispose();
     	
@@ -118,7 +119,7 @@ public class Main extends JFrame implements KeyListener, MouseListener, MouseMot
      * Content.LoadContent(), init(), and starts updating
      */
     public Main(){
-    	setSize(new Dimension(900, 690));
+    	setSize(new Dimension(1024, 768));
     	
     	//setUndecorated(true); // borderless (fullscreen) window
     	setExtendedState(getExtendedState() | JFrame.MAXIMIZED_BOTH); // maximize window

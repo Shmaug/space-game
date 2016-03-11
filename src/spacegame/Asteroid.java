@@ -8,14 +8,15 @@ import java.awt.*;
  *
  */
 public class Asteroid extends Body {
-	public int id;
-	
+	public int texId;
 	public float Health;
 	
-	public Asteroid(float mass, float radius){
-		super(mass, radius);
-    	sprite = ContentLoader.asteroidTexture;
-    	Health = 500;
+	public Asteroid(int type){
+    	sprite = ContentLoader.asteroidTextures[type];
+    	Radius = sprite.getWidth() * .45f;
+    	Health = Radius * 4;
+    	Mass = Radius * Radius;
+    	texId = type;
     	Gravity = true;
 	}
 	

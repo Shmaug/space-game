@@ -49,6 +49,13 @@ public class Ship extends Body {
 		
 		Gravity = false;
 		Collidable = true;
+		
+		setShipType(type);
+		
+		Position = new Vector2((float)Math.cos(Math.random() * Math.PI * 2), (float)Math.sin(Math.random() * Math.PI * 2)).mul((float)Math.random() * 1000 + 500);
+	}
+	
+	public void setShipType(int type){
 		ShipType = type;
 		sprite = ContentLoader.shipTextures[type];
 		switch (type){
@@ -212,7 +219,7 @@ public class Ship extends Body {
 		for (int i = 0; i < ThrustPositions.length; i++)
 			ThrustPositions[i] = ThrustPositions[i].sub(new Vector2(sprite.getWidth() / 2, sprite.getHeight() / 2));
 		
-		Position = new Vector2((float)Math.cos(Math.random() * Math.PI * 2), (float)Math.sin(Math.random() * Math.PI * 2)).mul((float)Math.random() * 1000);
+		respawn();
 	}
 	
 	/**

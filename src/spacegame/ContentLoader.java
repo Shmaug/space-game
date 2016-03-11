@@ -19,8 +19,9 @@ public class ContentLoader {
 	public static BufferedImage spaceBGTexture;
 	
 	// Body textures
-	public static BufferedImage planetTexture;
-	public static BufferedImage asteroidTexture;
+	public static BufferedImage[] planetTextures = new BufferedImage[5];
+	public static BufferedImage[] asteroidTextures = new BufferedImage[12];
+	public static BufferedImage[] starTextures = new BufferedImage[2];
 	
 	public static BufferedImage asteroidGibTexture;
 	
@@ -38,13 +39,16 @@ public class ContentLoader {
 	 */
 	public static void LoadContent(){
 		for (int i = 0; i < shipTextures.length; i++)
-			shipTextures[i] = 	loadImage("/resources/ship/ship" + i + ".png");
+			shipTextures[i] = 		loadImage("/resources/ships/ship" + i + ".png");
+		for (int i = 0; i < planetTextures.length; i++)
+			planetTextures[i] = 	loadImage("/resources/body/planets/planet" + i + ".png");
+		for (int i = 0; i < asteroidTextures.length; i++)
+			asteroidTextures[i] = 	loadImage("/resources/body/asteroids/asteroid" + i + ".png");
+		for (int i = 0; i < starTextures.length; i++)
+			starTextures[i] = 		loadImage("/resources/body/stars/star" + i + ".png");
 
 		shieldTexture = 	 	loadImage("/resources/fx/shield.png");
 		spaceBGTexture =	 	loadImage("/resources/fx/space.png");
-		
-		planetTexture = 		loadImage("/resources/body/planet.png");
-		asteroidTexture = 		loadImage("/resources/body/asteroid.png");
 		
 		asteroidGibTexture =	loadImage("/resources/particle/asteroidGib.png");
 		explodeTexture0 = 		loadImage("/resources/particle/explode0.png");

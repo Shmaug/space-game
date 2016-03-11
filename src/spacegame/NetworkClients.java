@@ -89,6 +89,11 @@ class ServerClient extends NetworkClient {
 			dOut.writeInt(id);
 			break;
 		}
+		case PACKET_SHIP_CHANGE:{
+			dOut.writeInt(id);
+			dOut.writeInt(Ship.ships[id].ShipType);
+			break;
+		}
 		case PACKET_RESPAWN:{
 			dOut.writeInt(id);
 			break;
@@ -147,7 +152,11 @@ class ServerClient extends NetworkClient {
 		}
 		case PACKET_RESPAWN:
 			ship.respawn();
-			Network.server.respawnShip(ship.id); // tell the server to tell the other clients
+			Network.server.sendShipRespawn(ship.id); // tell the server to tell the other clients
+			break;
+		case PACKET_SHIP_CHANGE:
+			ship.setShipType(dIn.readInt());
+			Network.server.sendShipChange(ship.id); // tell the server to tell the other clients
 			break;
 		case PACKET_BODY_REMOVE:
 			
@@ -251,6 +260,9 @@ class LocalClient extends NetworkClient {
 			break;
 		case PACKET_RESPAWN:
 			break;
+		case PACKET_SHIP_CHANGE:
+			dOut.writeInt(ship.ShipType);
+			break;
 		}
 		
 		
@@ -306,15 +318,18 @@ class LocalClient extends NetworkClient {
 			int id = dIn.readInt();
 			if (Ship.ships[id].Health > 0) // don't wanna duplicate the explode animation
 				Ship.ships[id].takeDamage(Ship.ships[id].MaxHealth + Ship.ships[id].MaxShield);
-			System.out.println("Client: " + id + " died!");
+			break;
+		}
+		case PACKET_SHIP_CHANGE:{
+			int id = dIn.readInt();
+			if (id != SpaceGame.myShip)
+				Ship.ships[id].setShipType(dIn.readInt());
 			break;
 		}
 		case PACKET_RESPAWN:{
 			int id = dIn.readInt();
-			if (id != SpaceGame.myShip){
+			if (id != SpaceGame.myShip)
 				Ship.ships[id].respawn();
-				System.out.println("Client: " + id + " respawned!");
-			}
 			break;
 		}
 		case PACKET_BODY_ADD:{
@@ -392,9 +407,9 @@ class LocalClient extends NetworkClient {
 							while ((i = dIn.readInt()) != -1){
 								Body b = new Body();
 								if (dIn.readBoolean())
-									b = new Asteroid(0, 0);
+									b = new Asteroid(dIn.readInt());
 								else
-									b.sprite = ContentLoader.planetTexture;
+									b.sprite = ContentLoader.planetTextures[0];
 								b.Position = new Vector2(dIn.readFloat(), dIn.readFloat());
 								b.Velocity = new Vector2(dIn.readFloat(), dIn.readFloat());
 								b.Rotation = dIn.readFloat();
