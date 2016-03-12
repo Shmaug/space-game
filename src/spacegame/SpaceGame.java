@@ -312,23 +312,23 @@ public class SpaceGame implements IGame {
         	
 			Ship s = new Ship(selectedShip);
 			Ship.ships[0] = s;
-			s.ClientName = savedName;
+			s.clientName = savedName;
 			myShip = 0;
 			
     		// we are the server
 	    	Body earth = new Body();
-	    	earth.Position = new Vector2(0, 500);
-	    	earth.Mass = 1e5f;
+	    	earth.position = new Vector2(0, 500);
+	    	earth.mass = 1e5f;
 	    	earth.sprite = ContentLoader.planetTextures[(int)(Math.random() * ContentLoader.planetTextures.length)];
-	    	earth.Radius = earth.sprite.getWidth() * .4f;
-	    	earth.Anchored = true;
-	    	earth.Collidable = true;
+	    	earth.radius = earth.sprite.getWidth() * .4f;
+	    	earth.anchored = true;
+	    	earth.collidable = true;
 	    	Body.addBody(earth);
 	    	
 	    	Asteroid asteroid = new Asteroid((int)(Math.random() * ContentLoader.asteroidTextures.length));
-	    	asteroid.Position = new Vector2(0, -100);
-	    	asteroid.Velocity = new Vector2(150, 0);
-	    	asteroid.AngularVelocity = 1;
+	    	asteroid.position = new Vector2(0, -100);
+	    	asteroid.velocity = new Vector2(150, 0);
+	    	asteroid.angularVelocity = 1;
 	    	Body.addBody(asteroid);
     	}
     	
@@ -345,14 +345,14 @@ public class SpaceGame implements IGame {
 	    	// control our ship
 	    	if (myShip != -1 && Ship.ships[myShip] != null){
 	    		Ship me = Ship.ships[myShip];
-	    		if (me.Health > 0){
+	    		if (me.health > 0){
 	    			deathTimer = 0;
 			    	// Aim ship
-			    	me.targetDirection = mouseWorld.sub(me.Position).normalized();
+			    	me.targetDirection = mouseWorld.sub(me.position).normalized();
 			    	
 			    	// Move ship
-			    	me.Thrusting = Input.MouseButtons[2];
-			    	me.Firing = Input.MouseButtons[0];
+			    	me.thrusting = Input.MouseButtons[2];
+			    	me.firing = Input.MouseButtons[0];
 	    		}else{
 	    			deathTimer += delta;
 	    			for (int i = 0; i < deadButtons.length; i++)
@@ -364,8 +364,8 @@ public class SpaceGame implements IGame {
 
 	    	// move camera
 	    	if (myShip != -1 && Ship.ships[myShip] != null){
-		    	if (Ship.ships[myShip] != null && Ship.ships[myShip].Health > 0){
-			    	camera.Position = Ship.ships[myShip].Position;
+		    	if (Ship.ships[myShip] != null && Ship.ships[myShip].health > 0){
+			    	camera.Position = Ship.ships[myShip].position;
 		    	}
 	    	}
 	    	
@@ -398,49 +398,49 @@ public class SpaceGame implements IGame {
 		    		Body b = Body.bodies[i];
 		    		if (b instanceof Ship){
 		    			Ship s = (Ship)b;
-		    			if (s.Health <= 0)
-		    				s.RemovalFlag = true;
+		    			if (s.health <= 0)
+		    				s.removalFlag = true;
 		    			else{
-		    				if (Math.abs(s.Position.x) > Main.ScreenWidth / 2 + s.Radius && Math.signum(s.Velocity.x) == Math.signum(s.Position.x))
-		    					s.RemovalFlag = true;
+		    				if (Math.abs(s.position.x) > Main.ScreenWidth / 2 + s.radius && Math.signum(s.velocity.x) == Math.signum(s.position.x))
+		    					s.removalFlag = true;
 		    					
 		    				shipc++;
-		    				s.targetDirection = s.Velocity.normalized();
+		    				s.targetDirection = s.velocity.normalized();
 		    				
-		    				s.Firing = Main.gameWindow.gamePanel.fps > 40;
+		    				s.firing = Main.gameWindow.gamePanel.fps > 40;
 	    				}
 		    		}
 		    	}
 	    		// spawn random ships
 	    		if (shipc < 10 && Main.gameWindow.gamePanel.fps > 25 && Math.random() < .05){
 	    			Ship s = new Ship((int)(Math.random()*ContentLoader.shipTextures.length));
-	    			s.Firing = true;
-	    			s.Thrusting = true;
-	    			s.Position = new Vector2(-Main.ScreenWidth * .5f - 100, ((float)Math.random()-.5f) * Main.ScreenHeight);
-	    			s.Rotation = (float)((Math.random() - .5f) * Math.PI * .25f * (.2f / Math.abs(s.Position.y - (Main.ScreenHeight / 2f))));
+	    			s.firing = true;
+	    			s.thrusting = true;
+	    			s.position = new Vector2(-Main.ScreenWidth * .5f - 100, ((float)Math.random()-.5f) * Main.ScreenHeight);
+	    			s.rotation = (float)((Math.random() - .5f) * Math.PI * .25f * (.2f / Math.abs(s.position.y - (Main.ScreenHeight / 2f))));
 	    			if (Math.random() > .5){
-	    				s.Position.x *= -1;
-	    				s.Rotation += (float)Math.PI;
+	    				s.position.x *= -1;
+	    				s.rotation += (float)Math.PI;
 	    			}
 	    			
-	    			s.AngularVelocity = 0;
-	    			s.Velocity = new Vector2((float)Math.cos(s.Rotation), (float)Math.sin(s.Rotation)).mul(s.MaxSpeed);
+	    			s.angularVelocity = 0;
+	    			s.velocity = new Vector2((float)Math.cos(s.rotation), (float)Math.sin(s.rotation)).mul(s.maxSpeed);
 	    			
 	    			Body.addBody(s);
 	    		}
 	    		// spawn random asteroids
 	    		if (Main.gameWindow.gamePanel.fps > 25 && Math.random() < .01){
 		        	Asteroid asteroid = new Asteroid((int)(Math.random() * ContentLoader.asteroidTextures.length));
-		        	asteroid.Position = new Vector2(-Main.ScreenWidth * .5f - 100, ((float)Math.random()-.5f) * Main.ScreenHeight);
-	    			asteroid.Rotation = (float)((Math.random() - .5f) * Math.PI * .25f * (.2f / Math.abs(asteroid.Position.y - (Main.ScreenHeight / 2f))));
+		        	asteroid.position = new Vector2(-Main.ScreenWidth * .5f - 100, ((float)Math.random()-.5f) * Main.ScreenHeight);
+	    			asteroid.rotation = (float)((Math.random() - .5f) * Math.PI * .25f * (.2f / Math.abs(asteroid.position.y - (Main.ScreenHeight / 2f))));
 	    			if (Math.random() > .5){
-	    				asteroid.Position.x *= -1;
-	    				asteroid.Rotation += (float)Math.PI;
+	    				asteroid.position.x *= -1;
+	    				asteroid.rotation += (float)Math.PI;
 	    			}
 	    			
-	    			asteroid.AngularVelocity = 0;
-	    			asteroid.Velocity = new Vector2((float)Math.cos(asteroid.Rotation), (float)Math.sin(asteroid.Rotation)).mul(600 + (float)Math.random() * 200);
-		        	asteroid.AngularVelocity = 3 * (float)Math.random();
+	    			asteroid.angularVelocity = 0;
+	    			asteroid.velocity = new Vector2((float)Math.cos(asteroid.rotation), (float)Math.sin(asteroid.rotation)).mul(600 + (float)Math.random() * 200);
+		        	asteroid.angularVelocity = 3 * (float)Math.random();
 		        	Body.addBody(asteroid);
 	    		}
 	    		
@@ -624,17 +624,17 @@ public class SpaceGame implements IGame {
         // SHIP/ASTEROID TRACKING
 		if (myShip != -1 && Ship.ships[myShip] != null){
 			Ship me = Ship.ships[myShip];
-			if (me.Health > 0){
-				Vector2 pos = me.Position;
+			if (me.health > 0){
+				Vector2 pos = me.position;
 				g2d.setFont(menuFontNormal);
 				for (int i = 0; i < Body.bodies.length; i++){
 					Body b = Body.bodies[i];
 					
 					if (b != me){
-						if (b instanceof Asteroid && Vector2.DistanceSquared(b.Position, pos) < 1000 * 1000){
+						if (b instanceof Asteroid && Vector2.DistanceSquared(b.position, pos) < 1000 * 1000){
 							g2d.setColor(new Color(.6f, .25f, .25f));
 							
-							Vector2 dir = b.Position.sub(me.Position).normalized();
+							Vector2 dir = b.position.sub(me.position).normalized();
 							g2d.setTransform(camera.getTransform());
 							g2d.translate(pos.x + dir.x * 200, pos.y + dir.y * 200);
 							
@@ -648,12 +648,12 @@ public class SpaceGame implements IGame {
 					}
 				}
 				for (int i = 0; i < Ship.ships.length; i++){
-					if (Ship.ships[i] != null && i != myShip && Ship.ships[i].Health > 0){
+					if (Ship.ships[i] != null && i != myShip && Ship.ships[i].health > 0){
 
 						g2d.setTransform(camera.getTransform());
 						g2d.setColor(Color.red);
 						
-						Vector2 dir = Ship.ships[i].Position.sub(me.Position).normalized();
+						Vector2 dir = Ship.ships[i].position.sub(me.position).normalized();
 						g2d.translate(pos.x + dir.x * 200, pos.y + dir.y * 200);
 						g2d.translate(0, -20);
 						g2d.rotate(Math.atan2(dir.y, dir.x));
@@ -664,8 +664,8 @@ public class SpaceGame implements IGame {
 				// draw HUD
 	        	g2d.setTransform(new AffineTransform());
     			// HEALTH/SHIELD BARS
-    			float h = me.Health / me.MaxHealth;
-    			float s = me.Shield / me.MaxShield;
+    			float h = me.health / me.maxHealth;
+    			float s = me.shield / me.maxShield;
     			
     			if (h < .25)
     				g2d.setColor(new Color(.6f, .25f, .25f, .85f));
@@ -679,7 +679,7 @@ public class SpaceGame implements IGame {
     			// SPEED HUD
     			g2d.setFont(menuFontNormal);
     			FontMetrics metrics = g2d.getFontMetrics(menuFontNormal);
-    			String spd = (int)Math.ceil(me.Velocity.length()) + " M/S";
+    			String spd = (int)Math.ceil(me.velocity.length()) + " M/S";
     			int w = metrics.stringWidth(spd);			
     			g2d.setColor(Color.white);
     			g2d.drawString(spd, (Main.ScreenWidth - w) / 2, (int)(Main.ScreenHeight * .75f) + 50);
@@ -731,26 +731,33 @@ public class SpaceGame implements IGame {
 				Input.Typed = Input.Typed.substring(0, 15);
 			g2d.drawString(Input.Typed + (System.currentTimeMillis() / 300 % 2 == 0 ? "" : "_"), Main.ScreenWidth / 2 - g2d.getFontMetrics(menuFontNormal).stringWidth(Input.Typed) / 2, Math.max(Main.ScreenHeight - 150, 600));
 		}
+		
+		Ship s = new Ship(selectedShip);
+		
 		// draw circle around ship
 		g2d.setColor(Color.darkGray);
 		g2d.fillOval((int)(Main.ScreenWidth * .2f) - 150, (int)(Main.ScreenHeight * .5f) - 150, 300, 300);
 		// draw ship
-		g2d.drawImage(ContentLoader.shipTextures[selectedShip], (int)(Main.ScreenWidth * .2f) - ContentLoader.shipTextures[selectedShip].getWidth() / 2, Main.ScreenHeight / 2 - ContentLoader.shipTextures[selectedShip].getHeight() / 2, null);
+		AffineTransform t = g2d.getTransform();
+		g2d.translate(
+				Main.ScreenWidth * .2f - s.origin.x,
+				Main.ScreenHeight / 2 - s.origin.y);
+		g2d.drawImage(s.sprite, 0, 0, s.srcRect.width, s.srcRect.height, 0, 0, s.srcRect.width, s.srcRect.height, null);
+		g2d.setTransform(t);
 		
 		// get max ship stats
 		float maxHealth, maxShield, maxSpeed, maxThrust, maxFireRate, maxDamage, maxMass;
 		maxHealth = maxShield = maxSpeed = maxThrust = maxFireRate = maxDamage = maxMass = 0;
 		for (int i = 0; i < ContentLoader.shipTextures.length; i++){
-			Ship s = new Ship(i);
-			maxHealth = Math.max(s.MaxHealth, maxHealth);
-			maxShield = Math.max(s.MaxShield, maxHealth);
-			maxSpeed = Math.max(s.MaxSpeed, maxSpeed);
-			maxThrust = Math.max(s.Thrust, maxThrust);
-			maxFireRate = Math.max(s.FireRate, maxFireRate);
-			maxDamage = Math.max(s.Damage, maxDamage);
-			maxMass = Math.max(s.Mass, maxMass);
+			Ship si = new Ship(i);
+			maxHealth = Math.max(si.maxHealth, maxHealth);
+			maxShield = Math.max(si.maxShield, maxHealth);
+			maxSpeed = Math.max(si.maxSpeed, maxSpeed);
+			maxThrust = Math.max(si.thrust, maxThrust);
+			maxFireRate = Math.max(si.fireRate, maxFireRate);
+			maxDamage = Math.max(si.damage, maxDamage);
+			maxMass = Math.max(si.mass, maxMass);
 		}
-		Ship s = new Ship(selectedShip);
 		
 		// draw ship stats
 		
@@ -763,57 +770,57 @@ public class SpaceGame implements IGame {
 		g2d.setColor(Color.white);
 		g2d.setFont(menuFontNormal);
 		g2d.drawString("HEALTH", Main.ScreenWidth * .4f, by + 30);
-		g2d.drawString(s.MaxHealth + "", bx + bw + 20, by + 30);
+		g2d.drawString(s.maxHealth + "", bx + bw + 20, by + 30);
 		g2d.setColor(new Color(1f, .25f, .25f));
-		g2d.fillRect(bx, by, (int)(bw * (s.MaxHealth / maxHealth)), bh);
+		g2d.fillRect(bx, by, (int)(bw * (s.maxHealth / maxHealth)), bh);
 		g2d.setColor(Color.white);
 		g2d.drawRect(bx, by, bw, bh);
 		by+=50;
 		
 		g2d.drawString("SHIELD", Main.ScreenWidth * .4f, by + 30);
-		g2d.drawString(s.MaxShield + "", bx + bw + 20, by + 30);
+		g2d.drawString(s.maxShield + "", bx + bw + 20, by + 30);
 		g2d.setColor(new Color(.25f, .25f, 1f));
-		g2d.fillRect(bx, by, (int)(bw * (s.MaxShield / maxShield)), bh);
+		g2d.fillRect(bx, by, (int)(bw * (s.maxShield / maxShield)), bh);
 		g2d.setColor(Color.white);
 		g2d.drawRect(bx, by, bw, bh);
 		by+=50;
 		
 		g2d.drawString("MAX SPEED", Main.ScreenWidth * .4f, by + 30);
-		g2d.drawString(s.MaxSpeed + "m/s", bx + bw + 20, by + 30);
+		g2d.drawString(s.maxSpeed + "m/s", bx + bw + 20, by + 30);
 		g2d.setColor(new Color(.25f, 1f, .25f));
-		g2d.fillRect(bx, by, (int)(bw * (s.MaxSpeed / maxSpeed)), bh);
+		g2d.fillRect(bx, by, (int)(bw * (s.maxSpeed / maxSpeed)), bh);
 		g2d.setColor(Color.white);
 		g2d.drawRect(bx, by, bw, bh);
 		by+=50;
 		
 		g2d.drawString("THRUST", Main.ScreenWidth * .4f, by + 30);
-		g2d.drawString(s.Thrust/1000 + "kN", bx + bw + 20, by + 30);
+		g2d.drawString(s.thrust/1000 + "kN", bx + bw + 20, by + 30);
 		g2d.setColor(Color.orange);
-		g2d.fillRect(bx, by, (int)(bw * (s.Thrust / maxThrust)), bh);
+		g2d.fillRect(bx, by, (int)(bw * (s.thrust / maxThrust)), bh);
 		g2d.setColor(Color.white);
 		g2d.drawRect(bx, by, bw, bh);
 		by+=50;
 		
 		g2d.drawString("FIRE RATE", Main.ScreenWidth * .4f, by + 30);
-		g2d.drawString(s.FireRate + "/s", bx + bw + 20, by + 30);
+		g2d.drawString(s.fireRate + "/s", bx + bw + 20, by + 30);
 		g2d.setColor(new Color(1f, .15f, .15f));
-		g2d.fillRect(bx, by, (int)(bw * (s.FireRate / maxFireRate)), bh);
+		g2d.fillRect(bx, by, (int)(bw * (s.fireRate / maxFireRate)), bh);
 		g2d.setColor(Color.white);
 		g2d.drawRect(bx, by, bw, bh);
 		by+=50;
 		
 		g2d.drawString("DAMAGE", Main.ScreenWidth * .4f, by + 30);
-		g2d.drawString(s.Damage + "", bx + bw + 20, by + 30);
+		g2d.drawString(s.damage + "", bx + bw + 20, by + 30);
 		g2d.setColor(new Color(1f, .15f, .15f));
-		g2d.fillRect(bx, by, (int)(bw * (s.Damage / maxDamage)), bh);
+		g2d.fillRect(bx, by, (int)(bw * (s.damage / maxDamage)), bh);
 		g2d.setColor(Color.white);
 		g2d.drawRect(bx, by, bw, bh);
 		by+=50;
 		
 		g2d.drawString("MASS", Main.ScreenWidth * .4f, by + 30);
-		g2d.drawString(s.Mass*1000 + "kg", bx + bw + 20, by + 30);
+		g2d.drawString(s.mass*1000 + "kg", bx + bw + 20, by + 30);
 		g2d.setColor(new Color(.15f, .15f, .15f));
-		g2d.fillRect(bx, by, (int)(bw * (s.Mass / maxMass)), bh);
+		g2d.fillRect(bx, by, (int)(bw * (s.mass / maxMass)), bh);
 		g2d.setColor(Color.white);
 		g2d.drawRect(bx, by, bw, bh);
 		by+=50;

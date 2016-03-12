@@ -2,35 +2,39 @@ package spacegame;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
+import java.util.ArrayList;
 
 public class Ship extends Body {
 	public static Ship[] ships = new Ship[32];
+	public ArrayList<Particle> thrustParticles;
 	
 	public int id;
 
-	public int ShipType;
+	public int shipType;
 	
-	public float Health;
-	public float MaxHealth;
-	public float Shield;
-	public float MaxShield;
+	public float health;
+	public float maxHealth;
+	public float shield;
+	public float maxShield;
 	
-	public float Damage;
-	public float LaserSpeed;
-	public float FireRate; // shots/sec
-	public float Thrust;
-	public float MaxSpeed;
-	public float TurnSpeed;
+	public float damage;
+	public float laserSpeed;
+	public float fireRate; // shots/sec
+	public float thrust;
+	public float maxSpeed;
+	public float turnSpeed;
 	
-	public Vector2[] GunPositions;
-	public Vector2[] ThrustPositions;
-	public float ThrustParticleRadius;
-	public Color ThrustParticleColor;
+	public Vector2[] gunPositions;
+	public Vector2[] thrustPositions;
+	public Rectangle thrustSpriteSrc;
+	public Rectangle laserSpriteSrc;
+	public Rectangle srcRect;
+	public Vector2 origin;
 	
-	public boolean Thrusting = false;
-	public boolean Firing = false;
+	public boolean thrusting = false;
+	public boolean firing = false;
 	
-	public float TimeAlive = 0;
+	public float timeAlive = 0;
 	
 	public Vector2 targetDirection = Vector2.Zero();
 	
@@ -41,21 +45,85 @@ public class Ship extends Body {
 	 * Used only by NetworkServer
 	 */
 	ServerClient client;
-	String ClientName = "";
+	String clientName = "";
 	
 	public Ship(int type){
 		super(1, 1);
 		zIndex = 0; // very front
 		
-		Gravity = false;
-		Collidable = true;
+		gravity = false;
+		collidable = true;
 		
 		setShipType(type);
 		
-		Position = new Vector2((float)Math.cos(Math.random() * Math.PI * 2), (float)Math.sin(Math.random() * Math.PI * 2)).mul((float)Math.random() * 1000 + 500);
+		position = new Vector2((float)Math.cos(Math.random() * Math.PI * 2), (float)Math.sin(Math.random() * Math.PI * 2)).mul((float)Math.random() * 1000 + 500);
+		thrustParticles = new ArrayList<Particle>();
+	}
+
+	public void setShipType(int type){
+		shipType = type;
+		sprite = ContentLoader.shipTextures[type];
+		switch (type){
+		case 0:
+			mass = 5;
+			radius = 35;
+			maxSpeed = 600;
+			laserSpeed = 1250;
+			turnSpeed = 1.75f;
+			thrust = 1700;
+			health = maxHealth = 50;
+			shield = maxShield = 100;
+			damage = 10;
+			fireRate = 5;
+			gunPositions = new Vector2[]{
+				new Vector2(46, 4.5f),
+				new Vector2(46, 47.5f)
+			};
+			thrustPositions = new Vector2[]{
+				new Vector2(3, 26.5f)
+			};
+			srcRect = new Rectangle(0, 0, 45, 53);
+			thrustSpriteSrc = new Rectangle(46, 0, 7, 15);
+			laserSpriteSrc = new Rectangle(48, 50, 13, 3);
+			break;
+		case 1:
+			mass = 7;
+			radius = 40;
+			maxSpeed = 500;
+			laserSpeed = 1500;
+			turnSpeed = 1.5f;
+			thrust = 1750;
+			health = maxHealth = 100;
+			shield = maxShield = 120;
+			damage = 9;
+			fireRate = 8;
+			gunPositions = new Vector2[]{
+				new Vector2(33, 6.5f),
+				new Vector2(33, 40.5f)
+			};
+			thrustPositions = new Vector2[]{
+					new Vector2(0, 5f),
+					new Vector2(0, 41f)
+			};
+			srcRect = new Rectangle(0, 0, 39, 48);
+			thrustSpriteSrc = new Rectangle(45, 0, 35, 14);
+			laserSpriteSrc = new Rectangle(60, 40, 20, 8);
+			break;
+		}
+
+		origin = new Vector2(srcRect.width * .5f, srcRect.height * .5f);
+		// center guns/thrusters
+		for (int i = 0; i < gunPositions.length; i++)
+			gunPositions[i] = gunPositions[i].sub(origin);
+		for (int i = 0; i < thrustPositions.length; i++)
+			thrustPositions[i] = thrustPositions[i].sub(origin);
+		
+		respawn();
 	}
 	
-	public void setShipType(int type){
+	@Deprecated
+	public void setShipTypeOld(int type){
+		/*
 		ShipType = type;
 		sprite = ContentLoader.shipTextures[type];
 		switch (type){
@@ -219,18 +287,18 @@ public class Ship extends Body {
 		for (int i = 0; i < ThrustPositions.length; i++)
 			ThrustPositions[i] = ThrustPositions[i].sub(new Vector2(sprite.getWidth() / 2, sprite.getHeight() / 2));
 		
-		respawn();
+		respawn();*/
 	}
 	
 	/**
 	 * Respawns this ships
 	 */
 	public void respawn(){
-		Health = MaxHealth;
-		Shield = MaxShield;
-		Position = new Vector2((float)Math.cos(Math.random() * Math.PI * 2), (float)Math.sin(Math.random() * Math.PI * 2)).mul((float)Math.random() * 1000);
-		Velocity = Vector2.Zero();
-		Collidable = true;
+		health = maxHealth;
+		shield = maxShield;
+		position = new Vector2((float)Math.cos(Math.random() * Math.PI * 2), (float)Math.sin(Math.random() * Math.PI * 2)).mul((float)Math.random() * 1000);
+		velocity = Vector2.Zero();
+		collidable = true;
 	}
 	/**
 	 * This method is created just to implement polymorphism
@@ -244,20 +312,20 @@ public class Ship extends Body {
 	 * @param dmg Damage to take
 	 */
 	public void TakeDamage(float dmg, Ship other){
-		if (Health > 0){
-			if (Shield > 0){
-				Shield -= dmg;
-				if (Shield < 0){
-					Health += Shield;
-					Shield = 0;
+		if (health > 0){
+			if (shield > 0){
+				shield -= dmg;
+				if (shield < 0){
+					health += shield;
+					shield = 0;
 				}
 			}else{
-				Health -= dmg;
+				health -= dmg;
 			}
 			
 			shieldRechargeCooldown = 2;
 			
-			if (Health <= 0){
+			if (health <= 0){
 				Explode();
 				
 				if (Network.server != null)
@@ -270,15 +338,15 @@ public class Ship extends Body {
 	 * Creates an explosion, sets health to 0, sets TimeAlive to 0
 	 */
 	public void Explode(){
-		TimeAlive = 0;
-		Health = 0;
-		Collidable = false;
+		timeAlive = 0;
+		health = 0;
+		collidable = false;
 		
 		// big explosion
 		Particle b = new Particle(1f, Color.white);
-		b.Radius = 5 + Radius / 100;
-		b.Position = Position;
-		b.Velocity = Vector2.Zero();
+		b.radius = 5 + radius / 100;
+		b.position = position;
+		b.velocity = Vector2.Zero();
 		b.frameWidth = 64;
 		b.numFrames = 16;
 		b.frameRate = b.numFrames / b.Life;
@@ -287,26 +355,26 @@ public class Ship extends Body {
 		Particle.particles.add(b);
 		
 		// little particles
-		for (int i = 0; i < Radius / 2; i++){
+		for (int i = 0; i < radius / 2; i++){
 			Particle p = new Particle(1, Color.white);
 			if (Math.random() > .5){
-				p.Radius = 1;
+				p.radius = 1;
 				p.frameWidth = 64;
 				p.numFrames = 16;
 				p.sprite = ContentLoader.explodeTexture0;
 			}else{
-				p.Radius = .75f;
+				p.radius = .75f;
 				p.frameWidth = 196;
 				p.numFrames = 13;
 				p.sprite = ContentLoader.explodeTexture1;
 			}
 			p.Animated = true;
 			p.frameRate = b.numFrames / b.Life;
-			p.Position = Position;
+			p.position = position;
 			
 			Vector2 dir = new Vector2((float)Math.random() - .5f, (float)Math.random() - .5f);
 			if (dir.length() > .9f) dir = dir.normalized().mul(.9f);
-			p.Velocity = dir.mul((float)Math.random() * Radius + 225f);
+			p.velocity = dir.mul((float)Math.random() * radius + 225f);
 			Particle.particles.add(p);
 		}
 	}
@@ -317,30 +385,31 @@ public class Ship extends Body {
 	 * @param delta Delta time since last frame
 	 */
 	void tryShoot(float delta){
-    	Vector2 rot = new Vector2((float)Math.cos(Rotation), (float)Math.sin(Rotation));
+    	Vector2 rot = new Vector2((float)Math.cos(rotation), (float)Math.sin(rotation));
     	
-		if (Firing){
+		if (firing){
 			gunCharge += delta;
-			if (gunCharge >= 1f / FireRate){
+			if (gunCharge >= 1f / fireRate){
 				gunCharge = 0;
 				// fire lasers at gun positions
-	    		for (int i = 0; i < GunPositions.length; i++){
-	        		Projectile laser = new Projectile(2, Damage, new Color(1f, .25f, .25f, 0.75f));
-	        		laser.sprite = ContentLoader.laserTexture;
-	        		laser.Rotation = Rotation;
+	    		for (int i = 0; i < gunPositions.length; i++){
+	        		//Projectile laser = new Projectile(2, damage, new Color(1f, .25f, .25f, 0.75f));
+	        		Projectile laser = new Projectile(2, damage, sprite);
+	        		laser.srcRect = laserSpriteSrc;
+	        		laser.rotation = rotation;
 	        		laser.AlphaDecay = 0;
 	        		laser.SizeDecay = 0;
-	        		laser.Radius = 1f;
-	        		laser.Mass = .25f;
-	        		laser.Velocity = Velocity.add(rot.mul(LaserSpeed));
-	        		laser.Gravity = false;
-	        		laser.RemoveOnHit = true;
+	        		laser.radius = 1f;
+	        		laser.mass = .25f;
+	        		laser.velocity = velocity.add(rot.mul(laserSpeed));
+	        		laser.gravity = false;
+	        		laser.removeOnHit = true;
 	        		laser.noHit = new Body[] { this };
 	        		laser.owner = this;
-	        		laser.Collidable = false;
-	    			laser.Position = Position.add(new Vector2(
-						GunPositions[i].x * rot.x - GunPositions[i].y * rot.y, // x*cos(a) - y*sin(a)
-						GunPositions[i].x * rot.y + GunPositions[i].y * rot.x  // x*sin(a) - y*cos(a)
+	        		laser.collidable = false;
+	    			laser.position = position.add(new Vector2(
+						gunPositions[i].x * rot.x - gunPositions[i].y * rot.y, // x*cos(a) - y*sin(a)
+						gunPositions[i].x * rot.y + gunPositions[i].y * rot.x  // x*sin(a) - y*cos(a)
 					));
 	    			Body.addBody(laser);
 	    		}
@@ -355,105 +424,113 @@ public class Ship extends Body {
 	 * @param delta
 	 */
 	void tryThrust(float delta){
-    	Vector2 rot = new Vector2((float)Math.cos(Rotation), (float)Math.sin(Rotation));
+    	Vector2 rot = new Vector2((float)Math.cos(rotation), (float)Math.sin(rotation));
     	
-		if (Thrusting){
-			Vector2 a = rot.mul((Thrust / Mass) * delta);
-			//Vector2 b = Velocity;
-			//if (Velocity.length() > MaxSpeed && a.dot(b) > 0)
-			//	a = a.sub( b.mul( a.dot(b) / b.dot(b)) ); // Vector rejection
-			Velocity = Velocity.add(a);
-			if (Velocity.length() > MaxSpeed)
-				Velocity = Velocity.normalized().mul(MaxSpeed);
+		if (thrusting){
+			Vector2 a = rot.mul((thrust / mass) * delta);
+			velocity = velocity.add(a);
 			
 			// Add thrust particles at thrust positions
-    		for (int i = 0; i < ThrustPositions.length; i++){
-    			Particle t = new Particle(2, ThrustParticleColor);
-        		t.AlphaDecay = -.5f;
-        		t.SizeDecay = -2;
-        		t.Radius = ThrustParticleRadius;
-        		t.Mass = .25f;
-        		t.Velocity = Velocity.sub(rot.mul(100)).add(new Vector2((float)Math.random()-.5f,(float)Math.random()-.5f).mul(50));
-        		t.Gravity = false;
-        		t.RemoveOnHit = true;
+			// Don't do this with the new ships
+			
+    		for (int i = 0; i < thrustPositions.length; i++){
+    			Particle t = new Particle(.75f, sprite);
+    			t.srcRect = thrustSpriteSrc;
+        		t.AlphaDecay = -1 / t.Life;
+        		t.SizeDecay = -1;
+        		t.mass = .25f;
+        		t.velocity = new Vector2(-100, ((float)Math.random() * 15 - 7));
+        		t.gravity = false;
+        		t.removeOnHit = true;
         		t.noHit = new Body[] { this };
-        		t.Collidable = false;
-    			t.Position = Position.add(new Vector2(
-					ThrustPositions[i].x * rot.x - ThrustPositions[i].y * rot.y, // x*cos(a) - y*sin(a)
-					ThrustPositions[i].x * rot.y + ThrustPositions[i].y * rot.x  // x*sin(a) - y*cos(a)
-				));
-    			Particle.particles.add(t);
+        		t.collidable = false;
+    			t.position = thrustPositions[i].add(origin);
+    			thrustParticles.add(t);
     		}
 		}
 	}
 	
 	@Override
 	void update(float delta){
-		if (Health > 0){
-			TimeAlive += delta;
+		if (health > 0){
+			timeAlive += delta;
 			if (shieldRechargeCooldown > 0)
 				shieldRechargeCooldown -= delta;
 			else
-				Shield = Math.min(Shield + delta * 50, MaxShield);
+				shield = Math.min(shield + delta * 50, maxShield);
 			
 	    	tryThrust(delta);
 			tryShoot(delta);
 
-	    	Vector2 dir = new Vector2((float)Math.cos(Rotation), (float)Math.sin(Rotation)); // current forward direction
+	    	Vector2 dir = new Vector2((float)Math.cos(rotation), (float)Math.sin(rotation)); // current forward direction
 	    	
 	    	float targav = 0;
 	    	float dot = dir.dot(targetDirection);
 	    	if (dot < .99f){
 	    		// sick one-liner below
-		    	if (new Vector2((float)Math.cos(Rotation + TurnSpeed), (float)Math.sin(Rotation + TurnSpeed)).dot(targetDirection) >
-		    	new Vector2((float)Math.cos(Rotation - TurnSpeed), (float)Math.sin(Rotation - TurnSpeed)).dot(targetDirection))
-		    		targav = TurnSpeed;
+		    	if (new Vector2((float)Math.cos(rotation + turnSpeed), (float)Math.sin(rotation + turnSpeed)).dot(targetDirection) >
+		    	new Vector2((float)Math.cos(rotation - turnSpeed), (float)Math.sin(rotation - turnSpeed)).dot(targetDirection))
+		    		targav = turnSpeed;
 		    	else
-		    		targav = -TurnSpeed;
+		    		targav = -turnSpeed;
 	    	}
 	    	
-    		AngularVelocity = AngularVelocity + (targav - AngularVelocity) * .25f; // lerp
+    		angularVelocity = angularVelocity + (targav - angularVelocity) * .25f; // lerp
 			
 			super.update(delta);
+			
+			if (velocity.length() > maxSpeed)
+				velocity = velocity.normalized().mul(maxSpeed);
 		}else{
-			TimeAlive -= delta;
-			Thrusting = Firing = false;
-			Velocity = Vector2.Zero();
+			timeAlive -= delta;
+			thrusting = firing = false;
+			velocity = Vector2.Zero();
+		}
+		
+		for (int i = 0; i < thrustParticles.size(); i++){
+			thrustParticles.get(i).update(delta);
+			if(thrustParticles.get(i).removalFlag){
+				thrustParticles.get(i).OnRemove();
+				thrustParticles.remove(i);
+				i--;
+			}
 		}
 	}
 	
 	@Override
 	void draw(Graphics2D g2d){
-		if (sprite != null && Health > 0){
+		if (sprite != null && health > 0){
 			AffineTransform before = g2d.getTransform();
 			Composite cbefore = g2d.getComposite();
 			
 			// Draw ship
-			float w2 = sprite.getWidth() / 2f;
-			float h2 = sprite.getHeight() / 2f;
 			
-			g2d.translate(Position.x, Position.y);
+			g2d.translate(position.x, position.y);
 			
 			// draw name
 			Font f = ContentLoader.AvenirBold.deriveFont(Font.BOLD, 24);
 			g2d.setFont(f);
 			g2d.setColor(Color.orange);
-			g2d.drawString(ClientName, -g2d.getFontMetrics(f).stringWidth(ClientName) / 2, Radius + 24);
+			g2d.drawString(clientName, -g2d.getFontMetrics(f).stringWidth(clientName) / 2, radius + 24);
 			
-			g2d.rotate(Rotation);
-			g2d.translate(-w2, -h2);
+			g2d.rotate(rotation);
+			g2d.translate(-origin.x, -origin.y);
+
+			g2d.drawImage(sprite, 0, 0, srcRect.width, srcRect.height, 0, 0, srcRect.width, srcRect.height, null);
+
+			// draw thrust particles
+			for (int i = 0; i < thrustParticles.size(); i++)
+				thrustParticles.get(i).draw(g2d);
 			
-			g2d.drawImage(sprite, 0, 0, null);
+			g2d.translate(origin.x, origin.y);
 			
-			g2d.translate(w2, h2);
-			
-			if (Firing){
-				g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, .25f * (float) Math.pow(Math.min(Math.max(gunCharge * FireRate, 0), 1), .9f)));
+			if (firing){
+				g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, .25f * (float) Math.pow(Math.min(Math.max(gunCharge * fireRate, 0), 1), .9f)));
 				g2d.setColor(new Color(1, .2f, .2f));
 				// draw little charge things
-				for (int i = 0; i < GunPositions.length; i++)
+				for (int i = 0; i < gunPositions.length; i++)
 					g2d.fillOval(//ContentLoader.muzzleFlashTexture,
-							(int)GunPositions[i].x - 5, (int)GunPositions[i].y - 6, 14, 12);
+							(int)gunPositions[i].x - 5, (int)gunPositions[i].y - 6, 14, 12);
 							//0, 0, 317, 155, null);
 			}
 			
@@ -462,12 +539,12 @@ public class Ship extends Body {
 			float sw2 = ContentLoader.shieldTexture.getWidth() / 2f;
 			float sh2 = ContentLoader.shieldTexture.getHeight() / 2f;
 			
-			final float ssc = Radius / (ContentLoader.shieldTexture.getWidth() / 2f);
+			final float ssc = radius / (ContentLoader.shieldTexture.getWidth() / 2f);
 			
 			g2d.scale(ssc, ssc);
 			g2d.translate(-sw2, -sh2);
 
-			g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, .5f * (Shield / MaxShield)));
+			g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, .5f * (shield / maxShield)));
 			
 			g2d.drawImage(ContentLoader.shieldTexture, 0, 0, null);
 			

@@ -13,11 +13,11 @@ public class Asteroid extends Body {
 	
 	public Asteroid(int type){
     	sprite = ContentLoader.asteroidTextures[type];
-    	Radius = sprite.getWidth() * .45f;
-    	Health = Radius * 4;
-    	Mass = Radius * Radius;
+    	radius = sprite.getWidth() * .45f;
+    	Health = radius * 4;
+    	mass = radius * radius;
     	texId = type;
-    	Gravity = true;
+    	gravity = true;
 	}
 	
 	public void TakeDamage(float dmg){
@@ -25,7 +25,7 @@ public class Asteroid extends Body {
 			Health -= dmg;
 			
 			if (Health <= 0)
-				RemovalFlag = true;
+				removalFlag = true;
 		}
 	}
 	
@@ -36,12 +36,12 @@ public class Asteroid extends Body {
 			Particle p = new Particle(2, new Color(139, 69, 19));
 			p.AlphaDecay = -.5f;
 			p.sprite = ContentLoader.asteroidGibTexture;
-			p.Rotation = (float)Math.random() * 3f;
-			p.AngularVelocity = (float)Math.random() * 3f - 1.5f;
-			p.Radius = 1;
+			p.rotation = (float)Math.random() * 3f;
+			p.angularVelocity = (float)Math.random() * 3f - 1.5f;
+			p.radius = 1;
 			p.SizeDecay = -.5f;
-			p.Position = Position;
-			p.Velocity = Velocity.add(new Vector2((float)Math.random() - .5f, (float)Math.random() - .5f).mul((float)Math.random() * 200f + 200f));
+			p.position = position;
+			p.velocity = velocity.add(new Vector2((float)Math.random() - .5f, (float)Math.random() - .5f).mul((float)Math.random() * 200f + 200f));
 			Particle.particles.add(p);
 		}
 	}

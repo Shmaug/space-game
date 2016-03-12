@@ -61,18 +61,18 @@ class ServerClient extends NetworkClient {
 			for (int i = 0; i < Ship.ships.length; i++){
 				if (Ship.ships[i] != null){
 					dOut.writeInt(i);
-					dOut.writeFloat(Ship.ships[i].Position.x);
-					dOut.writeFloat(Ship.ships[i].Position.y);
-					dOut.writeFloat(Ship.ships[i].Velocity.x);
-					dOut.writeFloat(Ship.ships[i].Velocity.y);
-					dOut.writeFloat(Ship.ships[i].Rotation);
-					dOut.writeFloat(Ship.ships[i].AngularVelocity);
+					dOut.writeFloat(Ship.ships[i].position.x);
+					dOut.writeFloat(Ship.ships[i].position.y);
+					dOut.writeFloat(Ship.ships[i].velocity.x);
+					dOut.writeFloat(Ship.ships[i].velocity.y);
+					dOut.writeFloat(Ship.ships[i].rotation);
+					dOut.writeFloat(Ship.ships[i].angularVelocity);
 					byte tf = 0;
-					if (Ship.ships[i].Thrusting) tf |= 1;
-					if (Ship.ships[i].Firing) tf |= 2;
+					if (Ship.ships[i].thrusting) tf |= 1;
+					if (Ship.ships[i].firing) tf |= 2;
 					dOut.writeByte(tf);
-					dOut.writeFloat(Ship.ships[i].Health);
-					dOut.writeFloat(Ship.ships[i].Shield);
+					dOut.writeFloat(Ship.ships[i].health);
+					dOut.writeFloat(Ship.ships[i].shield);
 				}
 			}
 			dOut.writeInt(-1);
@@ -83,7 +83,7 @@ class ServerClient extends NetworkClient {
 		}
 		case PACKET_NEW_CLIENT:
 			dOut.writeInt(id);
-			dOut.writeInt(Ship.ships[id].ShipType);
+			dOut.writeInt(Ship.ships[id].shipType);
 			break;
 		case PACKET_DEATH:{
 			dOut.writeInt(id);
@@ -91,7 +91,7 @@ class ServerClient extends NetworkClient {
 		}
 		case PACKET_SHIP_CHANGE:{
 			dOut.writeInt(id);
-			dOut.writeInt(Ship.ships[id].ShipType);
+			dOut.writeInt(Ship.ships[id].shipType);
 			break;
 		}
 		case PACKET_RESPAWN:{
@@ -137,14 +137,14 @@ class ServerClient extends NetworkClient {
 			float shield = dIn.readFloat();
 			
 			if (ship != null && ship.id != SpaceGame.myShip){ // because the server still has a client with the same Ship.ships
-				ship.Position = pos;
-				ship.Velocity = vel;
-				ship.Rotation = rot;
-				ship.AngularVelocity = angvel;
-				ship.Thrusting = (thrustFire & 1) > 0;
-				ship.Firing = (thrustFire & 2) > 0;
-				ship.Health = health;
-				ship.Shield = shield;
+				ship.position = pos;
+				ship.velocity = vel;
+				ship.rotation = rot;
+				ship.angularVelocity = angvel;
+				ship.thrusting = (thrustFire & 1) > 0;
+				ship.firing = (thrustFire & 2) > 0;
+				ship.health = health;
+				ship.shield = shield;
 			}
 			
 			TimeItTakesForAPacketToGetToTheServerFromTheClient = System.currentTimeMillis() - dIn.readLong();
@@ -243,25 +243,25 @@ class LocalClient extends NetworkClient {
 		
 		switch (type){
 		case PACKET_CLIENT_UPDATE:
-			dOut.writeFloat(ship.Position.x);
-			dOut.writeFloat(ship.Position.y);
-			dOut.writeFloat(ship.Velocity.x);
-			dOut.writeFloat(ship.Velocity.y);
-			dOut.writeFloat(ship.Rotation);
-			dOut.writeFloat(ship.AngularVelocity);
+			dOut.writeFloat(ship.position.x);
+			dOut.writeFloat(ship.position.y);
+			dOut.writeFloat(ship.velocity.x);
+			dOut.writeFloat(ship.velocity.y);
+			dOut.writeFloat(ship.rotation);
+			dOut.writeFloat(ship.angularVelocity);
 			byte tf = 0;
-			if (ship.Thrusting) tf |= 1;
-			if (ship.Firing) tf |= 2;
+			if (ship.thrusting) tf |= 1;
+			if (ship.firing) tf |= 2;
 			dOut.writeByte(tf);
-			dOut.writeFloat(ship.Health);
-			dOut.writeFloat(ship.Shield);
+			dOut.writeFloat(ship.health);
+			dOut.writeFloat(ship.shield);
 			
 			dOut.writeLong(System.currentTimeMillis()); // timestamp
 			break;
 		case PACKET_RESPAWN:
 			break;
 		case PACKET_SHIP_CHANGE:
-			dOut.writeInt(ship.ShipType);
+			dOut.writeInt(ship.shipType);
 			break;
 		}
 		
@@ -299,14 +299,14 @@ class LocalClient extends NetworkClient {
 				float shield = dIn.readFloat();
 
 				if (Ship.ships[i] != ship){
-					Ship.ships[i].Position = pos;
-					Ship.ships[i].Velocity = vel;
-					Ship.ships[i].Rotation = rot;
-					Ship.ships[i].AngularVelocity = angvel;
-					Ship.ships[i].Thrusting = (thrustFire & 1) > 0;
-					Ship.ships[i].Firing = (thrustFire & 2) > 0;
-					Ship.ships[i].Health = health;
-					Ship.ships[i].Shield = shield;
+					Ship.ships[i].position = pos;
+					Ship.ships[i].velocity = vel;
+					Ship.ships[i].rotation = rot;
+					Ship.ships[i].angularVelocity = angvel;
+					Ship.ships[i].thrusting = (thrustFire & 1) > 0;
+					Ship.ships[i].firing = (thrustFire & 2) > 0;
+					Ship.ships[i].health = health;
+					Ship.ships[i].shield = shield;
 				}
 			}
 			TimeItTakesForAPacketToGetToTheClientFromTheServer = System.currentTimeMillis() - dIn.readLong();
@@ -316,8 +316,8 @@ class LocalClient extends NetworkClient {
 		}
 		case PACKET_DEATH:{
 			int id = dIn.readInt();
-			if (Ship.ships[id].Health > 0) // don't wanna duplicate the explode animation
-				Ship.ships[id].takeDamage(Ship.ships[id].MaxHealth + Ship.ships[id].MaxShield);
+			if (Ship.ships[id].health > 0) // don't wanna duplicate the explode animation
+				Ship.ships[id].takeDamage(Ship.ships[id].maxHealth + Ship.ships[id].maxShield);
 			break;
 		}
 		case PACKET_SHIP_CHANGE:{
@@ -398,7 +398,7 @@ class LocalClient extends NetworkClient {
 							ship = Ship.ships[id];
 							ship.id = id;
 							SpaceGame.myShip = id;
-							ship.ClientName = name;
+							ship.clientName = name;
 							System.out.println("Client: I am " + id);
 							
 							// Receive body data
@@ -410,15 +410,15 @@ class LocalClient extends NetworkClient {
 									b = new Asteroid(dIn.readInt());
 								else
 									b.sprite = ContentLoader.planetTextures[0];
-								b.Position = new Vector2(dIn.readFloat(), dIn.readFloat());
-								b.Velocity = new Vector2(dIn.readFloat(), dIn.readFloat());
-								b.Rotation = dIn.readFloat();
-								b.AngularVelocity = dIn.readFloat();
-								b.Mass = dIn.readFloat();
-								b.Radius = dIn.readFloat();
-								b.Anchored = dIn.readBoolean();
-								b.Collidable = dIn.readBoolean();
-								b.Gravity = dIn.readBoolean();
+								b.position = new Vector2(dIn.readFloat(), dIn.readFloat());
+								b.velocity = new Vector2(dIn.readFloat(), dIn.readFloat());
+								b.rotation = dIn.readFloat();
+								b.angularVelocity = dIn.readFloat();
+								b.mass = dIn.readFloat();
+								b.radius = dIn.readFloat();
+								b.anchored = dIn.readBoolean();
+								b.collidable = dIn.readBoolean();
+								b.gravity = dIn.readBoolean();
 								b.zIndex = dIn.readInt();
 								Body.bodies[i] = b;
 							}

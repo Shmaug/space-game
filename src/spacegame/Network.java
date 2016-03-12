@@ -271,7 +271,7 @@ class NetworkServer{
 										ship = new Ship(stype);
 										ship.client = client;
 										ship.id = i;
-										ship.ClientName = name;
+										ship.clientName = name;
 										break;
 									}
 								}
@@ -294,7 +294,7 @@ class NetworkServer{
 										for (int i = 0; i < Ship.ships.length; i++)
 											if (Ship.ships[i] != null){
 												dOut.writeInt(i);
-												dOut.writeInt(Ship.ships[i].ShipType);
+												dOut.writeInt(Ship.ships[i].shipType);
 											}
 										// Send the player other ship information
 										dOut.writeInt(-1);
@@ -309,17 +309,17 @@ class NetworkServer{
 												dOut.writeBoolean(b instanceof Asteroid);
 												if (b instanceof Asteroid)
 													dOut.writeInt(((Asteroid)b).texId);
-												dOut.writeFloat(b.Position.x);
-												dOut.writeFloat(b.Position.y);
-												dOut.writeFloat(b.Velocity.x);
-												dOut.writeFloat(b.Velocity.y);
-												dOut.writeFloat(b.Rotation);
-												dOut.writeFloat(b.AngularVelocity);
-												dOut.writeFloat(b.Mass);
-												dOut.writeFloat(b.Radius);
-												dOut.writeBoolean(b.Anchored);
-												dOut.writeBoolean(b.Collidable);
-												dOut.writeBoolean(b.Gravity);
+												dOut.writeFloat(b.position.x);
+												dOut.writeFloat(b.position.y);
+												dOut.writeFloat(b.velocity.x);
+												dOut.writeFloat(b.velocity.y);
+												dOut.writeFloat(b.rotation);
+												dOut.writeFloat(b.angularVelocity);
+												dOut.writeFloat(b.mass);
+												dOut.writeFloat(b.radius);
+												dOut.writeBoolean(b.anchored);
+												dOut.writeBoolean(b.collidable);
+												dOut.writeBoolean(b.gravity);
 												dOut.writeInt(b.zIndex);
 											}
 										}

@@ -12,31 +12,31 @@ import java.awt.image.BufferedImage;
 public class Body {
 	public static Body[] bodies = new Body[1024];
 	
-	public float Rotation;
-	public float AngularVelocity;
-	public Vector2 Velocity;
-	public Vector2 Position;
-	public float Mass;
-	public float Radius;
+	public float rotation;
+	public float angularVelocity;
+	public Vector2 velocity;
+	public Vector2 position;
+	public float mass;
+	public float radius;
 	/**
 	 * Whether or not this object is movable
 	 */
-	public boolean Anchored = false;
+	public boolean anchored = false;
 	
 	/**
 	 * Color to fill the circle (ignored if sprite != null)
 	 */
-	public Color FillColor;
+	public Color fillColor;
 	public BufferedImage sprite;
 	
 	/**
 	 * Whether or not objects gravitate towards this (will still gravitate towards others!)
 	 */
-	public boolean Gravity = true;
+	public boolean gravity = true;
 	public int zIndex = 2;
 	
-	public boolean RemoveOnHit = false;
-	public boolean Collidable = true;
+	public boolean removeOnHit = false;
+	public boolean collidable = true;
 	/**
 	 * Bodies to ignore hit detection
 	 */
@@ -45,23 +45,23 @@ public class Body {
 	/**
 	 * Set this to true to have this removed from Bodies
 	 */
-	public boolean RemovalFlag = false;
+	public boolean removalFlag = false;
 
 	public Body(){
-		Rotation = 0;
-		Position = Vector2.Zero();
-		Velocity = Vector2.Zero();
-		FillColor = Color.white;
-		Radius = 1f;
-		Mass = 1f;
+		rotation = 0;
+		position = Vector2.Zero();
+		velocity = Vector2.Zero();
+		fillColor = Color.white;
+		radius = 1f;
+		mass = 1f;
 	}
 	public Body(float mass, float radius){
-		Rotation = 0;
-		Position = Vector2.Zero();
-		Velocity = Vector2.Zero();
-		FillColor = Color.white;
-		Radius = radius;
-		Mass = mass;
+		rotation = 0;
+		position = Vector2.Zero();
+		velocity = Vector2.Zero();
+		fillColor = Color.white;
+		this.radius = radius;
+		this.mass = mass;
 	}
 	
 	public static void addBody(Body b){
@@ -86,10 +86,10 @@ public class Body {
 	}
 	
 	private void hitDetect(Body b){
-		float d2 = Vector2.DistanceSquared(Position, b.Position);
-		float r2 = (b.Radius + Radius) * (b.Radius + Radius);
+		float d2 = Vector2.DistanceSquared(position, b.position);
+		float r2 = (b.radius + radius) * (b.radius + radius);
 		// HIT DETECTION
-		if (RemoveOnHit && b.Collidable){
+		if (removeOnHit && b.collidable){
 			boolean check = true;
 			if (noHit != null){
 				for (int i = 0; i < noHit.length; i++){
@@ -101,7 +101,7 @@ public class Body {
 			}
 			if (check){
 				if (d2 <= r2){
-					RemovalFlag = true;
+					removalFlag = true;
 					
 					if (this instanceof Projectile)
 						if (b instanceof Ship)
@@ -113,43 +113,43 @@ public class Body {
 		}
 		
 		// ELASTIC COLLISION
-		if (!Anchored && !RemovalFlag && Collidable && b.Collidable && d2 < r2){
+		if (!anchored && !removalFlag && collidable && b.collidable && d2 < r2){
 			// get some data
-			Vector2 dir = Position.sub(b.Position).normalized();
-			float nv = b.Velocity.sub(Velocity).dot(dir);
+			Vector2 dir = position.sub(b.position).normalized();
+			float nv = b.velocity.sub(velocity).dot(dir);
 			
-			float deltaV = Velocity.sub(b.Velocity).length();
+			float deltaV = velocity.sub(b.velocity).length();
 			
 			if (nv > 0){
-				float im1 = 1 / Mass;
-				float im2 = 1 / b.Mass;
+				float im1 = 1 / mass;
+				float im2 = 1 / b.mass;
 				
 				float i = -(1 + PhysicsConstants.Restitution) * nv;
 				i /= im1 + im2;
 				
 				Vector2 impulse = dir.mul(i);
-				if (!b.Anchored){
-					Velocity = Velocity.sub(impulse.mul(im1));
-					b.Velocity = b.Velocity.add(impulse.mul(im2));
+				if (!b.anchored){
+					velocity = velocity.sub(impulse.mul(im1));
+					b.velocity = b.velocity.add(impulse.mul(im2));
 				}else{
-					Velocity = Velocity.sub(impulse.mul(im1 + im2));
+					velocity = velocity.sub(impulse.mul(im1 + im2));
 				}
-				Vector2 pos = dir.mul((Radius + b.Radius - (float)Math.sqrt(d2)) / (im1 + im2));
+				Vector2 pos = dir.mul((radius + b.radius - (float)Math.sqrt(d2)) / (im1 + im2));
 				pos.mul(-1);
-				if (!b.Anchored){
-					Position = Position.sub(pos.mul(im1));
-					b.Position = b.Position.add(pos.mul(im2));
+				if (!b.anchored){
+					position = position.sub(pos.mul(im1));
+					b.position = b.position.add(pos.mul(im2));
 				}else{
-					Position = Position.sub(pos.mul(im1 + im2));
+					position = position.sub(pos.mul(im1 + im2));
 				}
 				
 				if (deltaV > 40){
 					float dmg = deltaV / 6;
 					if (this instanceof Ship)
-						((Ship)this).TakeDamage(dmg * (1 - (Mass / (Mass + b.Mass))), b instanceof Ship ? (Ship)b : null);
+						((Ship)this).TakeDamage(dmg * (1 - (mass / (mass + b.mass))), b instanceof Ship ? (Ship)b : null);
 
 					if (b instanceof Ship)
-						((Ship)b).TakeDamage(dmg * (1 - (b.Mass / (Mass + b.Mass))), this instanceof Ship ? (Ship)this : null);
+						((Ship)b).TakeDamage(dmg * (1 - (b.mass / (mass + b.mass))), this instanceof Ship ? (Ship)this : null);
 				}
 			}
 		}
@@ -161,7 +161,7 @@ public class Body {
 	 * @param delta
 	 */
 	void update(float delta){
-		if (!Anchored){
+		if (!anchored){
 			for (int j = 0; j < bodies.length; j++){
 				Body b = bodies[j];
 				if (b != null){
@@ -170,12 +170,12 @@ public class Body {
 						hitDetect(b);
 						
 						// Apply acceleration towards bodies, using Newtonian gravity equations
-						float d2 = Vector2.DistanceSquared(Position, b.Position);
-						if (b.Gravity && d2 > 200){
-							float f = PhysicsConstants.G * Mass * b.Mass / d2; // f = G * (m1*m2 / (r^2))
-							Vector2 dir = ((b.Position.sub(Position)).normalized());
+						float d2 = Vector2.DistanceSquared(position, b.position);
+						if (b.gravity && d2 > 200){
+							float f = PhysicsConstants.G * mass * b.mass / d2; // f = G * (m1*m2 / (r^2))
+							Vector2 dir = ((b.position.sub(position)).normalized());
 							
-							Velocity = Velocity.add(dir.mul(f / Mass * delta));
+							velocity = velocity.add(dir.mul(f / mass * delta));
 						}
 					}
 				}
@@ -188,8 +188,8 @@ public class Body {
 			}
 		}
 		
-		Position = Position.add(Velocity.mul(delta));
-		Rotation += AngularVelocity * delta;
+		position = position.add(velocity.mul(delta));
+		rotation += angularVelocity * delta;
 	}
 	
 	public void OnRemove(){
@@ -202,21 +202,21 @@ public class Body {
 			float w2 = sprite.getWidth() / 2f;
 			float h2 = sprite.getHeight() / 2f;
 			
-			g2d.translate(Position.x, Position.y);
-			g2d.rotate(Rotation);
+			g2d.translate(position.x, position.y);
+			g2d.rotate(rotation);
 			g2d.translate(-w2, -h2);
 
 			Composite cbefore = g2d.getComposite();
-			g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, FillColor.getAlpha() / 255f));
+			g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, fillColor.getAlpha() / 255f));
 			g2d.drawImage(sprite, 0, 0, null);
 			g2d.setComposite(cbefore);
 		}else{
-			g2d.translate(Position.x, Position.y);
-			g2d.rotate(Rotation);
-			g2d.translate(-Radius, -Radius);
+			g2d.translate(position.x, position.y);
+			g2d.rotate(rotation);
+			g2d.translate(-radius, -radius);
 			
-			g2d.setColor(FillColor);
-			g2d.fillOval(0, 0, (int)Radius*2, (int)Radius*2);
+			g2d.setColor(fillColor);
+			g2d.fillOval(0, 0, (int)radius*2, (int)radius*2);
 		}
 		
 		g2d.setTransform(before);
@@ -251,7 +251,7 @@ public class Body {
 			Body b = bodies[i];
 			if (b != null){
 				b.update(delta);
-				if(b.RemovalFlag){
+				if(b.removalFlag){
 					b.OnRemove();
 					bodies[i] = null;
 				}
@@ -267,7 +267,7 @@ public class Body {
 		for (int i = 0; i < Particle.particles.size(); i++){
 			Body b = Particle.particles.get(i);
 			b.update(delta);
-			if(b.RemovalFlag){
+			if(b.removalFlag){
 				b.OnRemove();
 				Particle.particles.remove(i);
 				i--;
