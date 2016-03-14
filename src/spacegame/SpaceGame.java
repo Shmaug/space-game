@@ -608,6 +608,8 @@ public class SpaceGame implements IGame {
             }
         }
         
+        KillFeed.draw(g2d, menuFontSmall);
+        
         // draw world
 		g2d.setTransform(camera.getTransform());
 		

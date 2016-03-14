@@ -47,11 +47,11 @@ class ServerClient extends NetworkClient {
 	}
 
 	public void sendPacket(PacketType type) throws IOException{
-		sendPacket(type, -1);
+		sendPacket(type, new int[] { -1 });
 	}
 	
 	@SuppressWarnings("incomplete-switch")
-	public void sendPacket(PacketType type, int id) throws IOException{
+	public void sendPacket(PacketType type, int[] args) throws IOException{
 		ByteArrayOutputStream bOut = new ByteArrayOutputStream();
 		DataOutputStream dOut = new DataOutputStream(bOut);
 
@@ -82,28 +82,29 @@ class ServerClient extends NetworkClient {
 			break;
 		}
 		case PACKET_NEW_CLIENT:
-			dOut.writeInt(id);
-			dOut.writeInt(Ship.ships[id].shipType);
+			dOut.writeInt(args[0]);
+			dOut.writeInt(Ship.ships[args[0]].shipType);
 			break;
 		case PACKET_DEATH:{
-			dOut.writeInt(id);
+			dOut.writeInt(args[0]);
+			dOut.writeInt(args[1]);
 			break;
 		}
 		case PACKET_SHIP_CHANGE:{
-			dOut.writeInt(id);
-			dOut.writeInt(Ship.ships[id].shipType);
+			dOut.writeInt(args[0]);
+			dOut.writeInt(Ship.ships[args[0]].shipType);
 			break;
 		}
 		case PACKET_RESPAWN:{
-			dOut.writeInt(id);
+			dOut.writeInt(args[0]);
 			break;
 		}
 		case PACKET_BODY_REMOVE:{
-			dOut.writeInt(id);
+			dOut.writeInt(args[0]);
 			break;
 		}
 		case PACKET_BODY_ADD:{
-			dOut.writeInt(id);
+			dOut.writeInt(args[0]);
 			// TODO send data about body
 			break;
 		}
@@ -316,8 +317,9 @@ class LocalClient extends NetworkClient {
 		}
 		case PACKET_DEATH:{
 			int id = dIn.readInt();
+			int killer = dIn.readInt();
 			if (Ship.ships[id].health > 0) // don't wanna duplicate the explode animation
-				Ship.ships[id].takeDamage(Ship.ships[id].maxHealth + Ship.ships[id].maxShield);
+				Ship.ships[id].takeDamage(Ship.ships[id].maxHealth + Ship.ships[id].maxShield, killer == -1 ? null : Ship.ships[killer]);
 			break;
 		}
 		case PACKET_SHIP_CHANGE:{
@@ -342,8 +344,11 @@ class LocalClient extends NetworkClient {
 			break;
 		}
 		case PACKET_NEW_CLIENT:
-			Ship.ships[dIn.readInt()] = new Ship(dIn.readInt());
+			int i = dIn.readInt();
+			Ship.ships[i] = new Ship(dIn.readInt());
+			Ship.ships[i].clientName = dIn.readUTF();
 			System.out.println("Client: New client");
+			KillFeed.log(Ship.ships[i].clientName + " CONNECTED");
 			break;
 		}
 		} catch (EOFException e){
@@ -391,8 +396,10 @@ class LocalClient extends NetworkClient {
 
 							Ship.ships = new Ship[Ship.ships.length]; // reset ships
 							int i = 0;
-							while ((i = dIn.readInt()) != -1)
+							while ((i = dIn.readInt()) != -1){
 								Ship.ships[i] = new Ship(dIn.readInt());
+								Ship.ships[i].clientName = dIn.readUTF();
+								}
 							
 							Ship.ships[id] = new Ship(selectedShip);
 							ship = Ship.ships[id];
