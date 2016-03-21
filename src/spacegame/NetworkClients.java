@@ -372,8 +372,8 @@ class LocalClient extends NetworkClient {
 				public void run(){
 					try {
 						socket = new Socket(host, port);
+						System.out.println("Client: connected to " + host + ":" + port);
 						socket.setTcpNoDelay(true);
-						System.out.println("Client: connected to " + host);
 						dataIn = new DataInputStream(socket.getInputStream());
 						dataOut = new DataOutputStream(socket.getOutputStream());
 						
