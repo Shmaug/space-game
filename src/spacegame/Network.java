@@ -142,7 +142,7 @@ class NetworkServer{
 			if (Ship.ships[i] != null && Ship.ships[i].client != null && Ship.ships[i].client.running){
 				if (i != id)
 					try {
-						Ship.ships[i].client.sendPacket(PacketType.PACKET_RESPAWN, id);
+						Ship.ships[i].client.sendPacket(PacketType.PACKET_RESPAWN, new int[] { id });
 					} catch (IOException e) { }
 			}
 		}
@@ -150,12 +150,12 @@ class NetworkServer{
 	/*
 	 * Notify all clients that a ship died
 	 */
-	public void sendDeath(int id){
+	public void sendDeath(int id, int killer){
 		for (int i = 0; i < Ship.ships.length; i++){
 			if (Ship.ships[i] != null && Ship.ships[i].client != null && Ship.ships[i].client.running){
 				if (i != id)
 					try {
-						Ship.ships[i].client.sendPacket(PacketType.PACKET_DEATH, id);
+						Ship.ships[i].client.sendPacket(PacketType.PACKET_DEATH, new int[] { id, killer });
 					} catch (IOException e) { }
 			}
 		}
@@ -168,7 +168,7 @@ class NetworkServer{
 			if (Ship.ships[i] != null && Ship.ships[i].client != null && Ship.ships[i].client.running){
 				if (i != id)
 					try {
-						Ship.ships[i].client.sendPacket(PacketType.PACKET_SHIP_CHANGE, id);
+						Ship.ships[i].client.sendPacket(PacketType.PACKET_SHIP_CHANGE, new int[] { id });
 					} catch (IOException e) { }
 			}
 		}
@@ -181,7 +181,7 @@ class NetworkServer{
 			if (Ship.ships[i] != null && Ship.ships[i].client != null && Ship.ships[i].client.running){
 				if (i != id)
 					try {
-						Ship.ships[i].client.sendPacket(PacketType.PACKET_NEW_CLIENT, id);
+						Ship.ships[i].client.sendPacket(PacketType.PACKET_NEW_CLIENT, new int[] { id });
 					} catch (IOException e) { }
 			}
 		}
@@ -196,7 +196,7 @@ class NetworkServer{
 			if (Ship.ships[i] != null && Ship.ships[i].client != null && Ship.ships[i].client.running){
 				if (i != SpaceGame.myShip)
 					try {
-						Ship.ships[i].client.sendPacket(PacketType.PACKET_BODY_REMOVE, id);
+						Ship.ships[i].client.sendPacket(PacketType.PACKET_BODY_REMOVE, new int[] { id });
 					} catch (IOException e) { }
 			}
 		}
@@ -210,7 +210,7 @@ class NetworkServer{
 			if (Ship.ships[i] != null && Ship.ships[i].client != null && Ship.ships[i].client.running){
 				if (i != SpaceGame.myShip)
 					try {
-						Ship.ships[i].client.sendPacket(PacketType.PACKET_BODY_ADD, id);
+						Ship.ships[i].client.sendPacket(PacketType.PACKET_BODY_ADD, new int[] { id });
 					} catch (IOException e) { }
 			}
 		}
@@ -295,6 +295,7 @@ class NetworkServer{
 											if (Ship.ships[i] != null){
 												dOut.writeInt(i);
 												dOut.writeInt(Ship.ships[i].shipType);
+												dOut.writeUTF(Ship.ships[i].clientName);
 											}
 										// Send the player other ship information
 										dOut.writeInt(-1);
@@ -341,6 +342,8 @@ class NetworkServer{
 										if (ack == 42){
 											client.start();
 											sendConnection(ship.id);
+											
+											KillFeed.log(client.ship.clientName + " CONNECTED");
 										}else
 											System.out.println("??? " + ack);
 									} catch (IOException e){

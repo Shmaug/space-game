@@ -105,7 +105,7 @@ public class Body {
 					
 					if (this instanceof Projectile)
 						if (b instanceof Ship)
-							((Ship)b).TakeDamage(((Projectile)this).Damage, ((Projectile)this).owner);
+							((Ship)b).takeDamage(((Projectile)this).Damage, ((Projectile)this).owner);
 						else if (b instanceof Asteroid)
 							((Asteroid)b).TakeDamage(((Projectile)this).Damage);
 				}
@@ -146,10 +146,10 @@ public class Body {
 				if (deltaV > 40){
 					float dmg = deltaV / 6;
 					if (this instanceof Ship)
-						((Ship)this).TakeDamage(dmg * (1 - (mass / (mass + b.mass))), b instanceof Ship ? (Ship)b : null);
+						((Ship)this).takeDamage(dmg * (1 - (mass / (mass + b.mass))), b instanceof Ship ? (Ship)b : null);
 
 					if (b instanceof Ship)
-						((Ship)b).TakeDamage(dmg * (1 - (b.mass / (mass + b.mass))), this instanceof Ship ? (Ship)this : null);
+						((Ship)b).takeDamage(dmg * (1 - (b.mass / (mass + b.mass))), this instanceof Ship ? (Ship)this : null);
 				}
 			}
 		}
@@ -190,6 +190,16 @@ public class Body {
 		
 		position = position.add(velocity.mul(delta));
 		rotation += angularVelocity * delta;
+
+		if (position.x > 3000)
+			position.x = -3000;
+		if (position.x < -3000)
+			position.x = 3000;
+		
+		if (position.y > 3000)
+			position.y = -3000;
+		if (position.y < -3000)
+			position.y = 3000;
 	}
 	
 	public void OnRemove(){

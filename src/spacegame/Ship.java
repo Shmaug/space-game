@@ -305,13 +305,13 @@ public class Ship extends Body {
 	 * @param dmg Damage to take
 	 */
 	public void takeDamage(float dmg){
-		TakeDamage(dmg, null);
+		takeDamage(dmg, null);
 	}
 	/**
 	 * Applies damage to Shield, then to Health
 	 * @param dmg Damage to take
 	 */
-	public void TakeDamage(float dmg, Ship other){
+	public void takeDamage(float dmg, Ship other){
 		if (health > 0){
 			if (shield > 0){
 				shield -= dmg;
@@ -329,7 +329,12 @@ public class Ship extends Body {
 				Explode();
 				
 				if (Network.server != null)
-					Network.server.sendDeath(id);
+					Network.server.sendDeath(id, other != null ? other.id : -1);
+				
+				if (other != null)
+					KillFeed.log(other.clientName + " KILLED " + clientName);
+				else
+					KillFeed.log(clientName + " DIED");
 			}
 		}
 	}
