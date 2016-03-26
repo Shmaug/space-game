@@ -13,7 +13,7 @@ import javax.imageio.ImageIO;
  * @author Trevor
  */
 public class ContentLoader {
-	public static BufferedImage[] shipTextures = new BufferedImage[2];
+	public static BufferedImage[] shipTextures = new BufferedImage[6];
 	public static BufferedImage shieldTexture;
 	public static BufferedImage laserTexture;
 	public static BufferedImage spaceBGTexture;

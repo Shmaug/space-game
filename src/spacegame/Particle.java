@@ -43,8 +43,6 @@ public class Particle extends Body {
 		AlphaDecay = 0;
 		
 		curFrame = 0;
-		
-		zIndex = 1; // middle
 	}
 	
 	public Particle(float life, BufferedImage img){
@@ -62,8 +60,6 @@ public class Particle extends Body {
 		AlphaDecay = 0;
 		
 		curFrame = 0;
-		
-		zIndex = 1; // middle
 	}
 	
 	@Override

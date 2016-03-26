@@ -33,7 +33,6 @@ public class Body {
 	 * Whether or not objects gravitate towards this (will still gravitate towards others!)
 	 */
 	public boolean gravity = true;
-	public int zIndex = 2;
 	
 	public boolean removeOnHit = false;
 	public boolean collidable = true;
@@ -191,15 +190,15 @@ public class Body {
 		position = position.add(velocity.mul(delta));
 		rotation += angularVelocity * delta;
 
-		if (position.x > 3000)
-			position.x = -3000;
-		if (position.x < -3000)
-			position.x = 3000;
+		if (position.x > 1024 * 3)
+			position.x = -1024 * 3;
+		if (position.x < -1024 * 3)
+			position.x = 1024 * 3;
 		
-		if (position.y > 3000)
-			position.y = -3000;
-		if (position.y < -3000)
-			position.y = 3000;
+		if (position.y > 1024 * 3)
+			position.y = -1024 * 3;
+		if (position.y < -1024 * 3)
+			position.y = 1024 * 3;
 	}
 	
 	public void OnRemove(){
@@ -236,20 +235,18 @@ public class Body {
 	 * Draws all bodies in Body.bodies and Particle.particles
 	 */
 	public static void Draw(Graphics2D g2d){
-		for (int z = 2; z >= 0; z--){
-			// bodies
-			for (int i = 0; i < bodies.length; i++)
-				if (bodies[i] != null && bodies[i].zIndex == z)
-					bodies[i].draw(g2d);
-			// particles
-			for (int i = 0; i < Particle.particles.size(); i++)
-				if (Particle.particles.get(i).zIndex == z)
-					Particle.particles.get(i).draw(g2d);
-			// ships
-			for (int i = 0; i < Ship.ships.length; i++)
-				if (Ship.ships[i] != null)
-					Ship.ships[i].draw(g2d);
-		}
+		// ships
+		for (int i = 0; i < Ship.ships.length; i++)
+			if (Ship.ships[i] != null)
+				Ship.ships[i].draw(g2d);
+		// bodies
+		for (int i = 0; i < bodies.length; i++)
+			if (bodies[i] != null)
+				bodies[i].draw(g2d);
+		// particles
+		for (int i = 0; i < Particle.particles.size(); i++)
+			if (Particle.particles.get(i) != null)
+				Particle.particles.get(i).draw(g2d);
 	}
 	
 	/**

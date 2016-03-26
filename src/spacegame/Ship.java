@@ -4,6 +4,25 @@ import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 
+class Gun{
+	public float fireRate;
+	public float damage;
+	public float laserSpeed;
+	public Rectangle particleSrc;
+	public Vector2 position;
+	public float energyConsumption;
+	public float charge;
+	
+	public Gun(Vector2 pos, Rectangle parSrc, float frate, float dmg, float spd, float ec){
+		position = pos;
+		particleSrc = parSrc;
+		fireRate = frate;
+		damage = dmg;
+		laserSpeed = spd;
+		energyConsumption = ec;
+	}
+}
+
 public class Ship extends Body {
 	public static Ship[] ships = new Ship[32];
 	public ArrayList<Particle> thrustParticles;
@@ -17,30 +36,40 @@ public class Ship extends Body {
 	public float shield;
 	public float maxShield;
 	
-	public float damage;
-	public float laserSpeed;
-	public float fireRate; // shots/sec
+	public float damage; // just for stats screen
+	public float fireRate; // shots/sec, just for the stats screen
 	public float thrust;
 	public float maxSpeed;
 	public float turnSpeed;
 	
-	public Vector2[] gunPositions;
+	public float energy, maxEnergy;
+	public float specialEnergy, maxSpecialEnergy;
+	public Gun[] guns;
+	public Gun[] specialGuns;
 	public Vector2[] thrustPositions;
 	public Rectangle thrustSpriteSrc;
-	public Rectangle laserSpriteSrc;
 	public Rectangle srcRect;
 	public Vector2 origin;
 	
 	public boolean thrusting = false;
 	public boolean firing = false;
+	public boolean specialFire = false;
 	
 	public float timeAlive = 0;
 	
 	public Vector2 targetDirection = Vector2.Zero();
 	
-	private float shieldRechargeCooldown;
-	private float gunCharge;
+	public Rectangle turretSrc;
+	public Vector2 turretOrigin;
+	public Vector2 turretMount;
+	public float turretRotation;
+	public Gun[] turretGuns;
 	
+	private float shieldRechargeCooldown;
+	private float specialEnergyRechargeCooldown;
+	private float energyRechargeCooldown;
+	private int cGun = 0;
+	private int cTGun = 0;
 	/**
 	 * Used only by NetworkServer
 	 */
@@ -49,7 +78,6 @@ public class Ship extends Body {
 	
 	public Ship(int type){
 		super(1, 1);
-		zIndex = 0; // very front
 		
 		gravity = false;
 		collidable = true;
@@ -63,43 +91,47 @@ public class Ship extends Body {
 	public void setShipType(int type){
 		shipType = type;
 		sprite = ContentLoader.shipTextures[type];
+		Rectangle laserSrc;
 		switch (type){
 		case 0:
 			mass = 5;
 			radius = 35;
 			maxSpeed = 600;
-			laserSpeed = 1250;
 			turnSpeed = 1.75f;
 			thrust = 1700;
 			health = maxHealth = 50;
 			shield = maxShield = 100;
+			energy = maxEnergy = 100;
+			specialEnergy = maxSpecialEnergy = 100;
 			damage = 10;
 			fireRate = 5;
-			gunPositions = new Vector2[]{
-				new Vector2(46, 4.5f),
-				new Vector2(46, 47.5f)
+			laserSrc = new Rectangle(48, 50, 13, 3);
+			guns = new Gun[]{
+				new Gun(new Vector2(46, 4.5f), laserSrc, fireRate, damage, 1250, 1),
+				new Gun(new Vector2(46, 47.5f), laserSrc, fireRate, damage, 1250, 1)
 			};
 			thrustPositions = new Vector2[]{
 				new Vector2(3, 26.5f)
 			};
 			srcRect = new Rectangle(0, 0, 45, 53);
 			thrustSpriteSrc = new Rectangle(46, 0, 7, 15);
-			laserSpriteSrc = new Rectangle(48, 50, 13, 3);
 			break;
 		case 1:
 			mass = 7;
 			radius = 40;
 			maxSpeed = 500;
-			laserSpeed = 1500;
 			turnSpeed = 1.5f;
 			thrust = 1750;
 			health = maxHealth = 100;
 			shield = maxShield = 120;
-			damage = 9;
-			fireRate = 8;
-			gunPositions = new Vector2[]{
-				new Vector2(33, 6.5f),
-				new Vector2(33, 40.5f)
+			energy = maxEnergy = 100;
+			specialEnergy = maxSpecialEnergy = 100;
+			damage = 7;
+			fireRate = 6;
+			laserSrc = new Rectangle(60, 40, 20, 8);
+			guns = new Gun[]{
+				new Gun(new Vector2(33, 6.5f), laserSrc, fireRate, damage, 1500, 1),
+				new Gun(new Vector2(33, 40.5f), laserSrc, fireRate, damage, 1500, 1)
 			};
 			thrustPositions = new Vector2[]{
 					new Vector2(0, 5f),
@@ -107,14 +139,143 @@ public class Ship extends Body {
 			};
 			srcRect = new Rectangle(0, 0, 39, 48);
 			thrustSpriteSrc = new Rectangle(45, 0, 35, 14);
-			laserSpriteSrc = new Rectangle(60, 40, 20, 8);
+			break;
+		case 2:
+			mass = 13;
+			radius = 65;
+			maxSpeed = 500;
+			turnSpeed = .9f;
+			thrust = 2100;
+			health = maxHealth = 130;
+			shield = maxShield = 120;
+			energy = maxEnergy = 100;
+			specialEnergy = maxSpecialEnergy = 100;
+			damage = 17;
+			fireRate = 3;
+			laserSrc = new Rectangle(102, 0, 23, 6);
+			guns = new Gun[]{
+					new Gun(new Vector2(69, 7.5f), laserSrc, fireRate, damage, 1500, 1),
+					new Gun(new Vector2(69, 96.5f), laserSrc, fireRate, damage, 1500, 1)
+				};
+			thrustPositions = new Vector2[]{
+				new Vector2(-5, 53f)
+			};
+			srcRect = new Rectangle(0, 0, 98, 104);
+			thrustSpriteSrc = new Rectangle(97, 79, 34, 25);
+			turretSrc = new Rectangle(98, 32, 31, 26);
+			turretOrigin = new Vector2(8, 13);
+			turretMount = new Vector2(29, 52);
+			turretGuns = new Gun[]{
+				new Gun(new Vector2(31, 3f), laserSrc, fireRate, damage, 1500, 1),
+				new Gun(new Vector2(31, 24f), laserSrc, fireRate, damage, 1500, 1)
+			};
+			break;
+		case 3:
+			mass = 12;
+			radius = 50;
+			maxSpeed = 550;
+			turnSpeed = .8f;
+			thrust = 2000;
+			health = maxHealth = 100;
+			shield = maxShield = 100;
+			energy = maxEnergy = 100;
+			specialEnergy = maxSpecialEnergy = 100;
+			damage = 2;
+			fireRate = 15;
+			laserSrc = new Rectangle(96, 78, 20, 8);
+			guns = new Gun[]{
+				new Gun(new Vector2(54, 22.5f), laserSrc, 2, 5, 1600, 2),
+				new Gun(new Vector2(54, 63.5f), laserSrc, 2, 5, 1600, 2)
+			};
+			thrustPositions = new Vector2[]{
+				new Vector2(-3, 41f)
+			};
+			srcRect = new Rectangle(0, 0, 85, 86);
+			thrustSpriteSrc = new Rectangle(100, 3, 69, 36);
+			turretSrc = new Rectangle(126, 61, 49, 25);
+			turretOrigin = new Vector2(24, 13);
+			turretMount = new Vector2(16, 44);
+			turretGuns = new Gun[]{
+				new Gun(new Vector2(47, 13.5f), laserSrc, 15, 5, 2000, 2),
+			};
+			break;
+		case 4:
+			mass = 25;
+			radius = 120;
+			maxSpeed = 400;
+			turnSpeed = 1f;
+			thrust = 3000;
+			health = maxHealth = 200;
+			shield = maxShield = 120;
+			energy = maxEnergy = 100;
+			specialEnergy = maxSpecialEnergy = 100;
+			damage = 7;
+			fireRate = 4;
+			laserSrc = new Rectangle(200, 120, 20, 8);
+			guns = new Gun[]{
+				new Gun(new Vector2(95, 27), laserSrc, fireRate, damage, 1200, 5),
+				new Gun(new Vector2(94, 100), laserSrc, fireRate, damage, 1200, 5),
+				new Gun(new Vector2(104, 38), laserSrc, fireRate, damage, 1200, 5),
+				new Gun(new Vector2(104, 89), laserSrc, fireRate, damage, 1200, 5)
+			};
+			specialEnergy = maxSpecialEnergy = 100;
+			specialGuns = new Gun[]{
+					new Gun(new Vector2(116, 14), laserSrc, 15, 5, 1300, 5),
+					new Gun(new Vector2(116, 116), laserSrc, 15, 5, 1300, 5)
+			};
+			thrustPositions = new Vector2[]{
+					new Vector2(23, 97),
+					new Vector2(27, 44),
+					new Vector2(23, 28),
+					new Vector2(27, 82)
+			};
+			srcRect = new Rectangle(0, 0, 176, 127);
+			thrustSpriteSrc = new Rectangle(229, 15, 64, 20);
+			break;
+		case 5:
+			mass = 35;
+			radius = 140;
+			maxSpeed = 400;
+			turnSpeed = 1f;
+			thrust = 3300;
+			health = maxHealth = 200;
+			shield = maxShield = 130;
+			energy = maxEnergy = 50;
+			specialEnergy = maxSpecialEnergy = 100;
+			damage = 7;
+			fireRate = 6;
+			laserSrc = new Rectangle(202, 171, 20, 8);
+			guns = new Gun[]{
+				new Gun(new Vector2(79, 29), laserSrc, fireRate, damage, 1200, 5),
+				new Gun(new Vector2(71, 3), laserSrc, fireRate, damage, 1200, 5),
+				new Gun(new Vector2(79, 148), laserSrc, fireRate, damage, 1200, 5),
+				new Gun(new Vector2(71, 173), laserSrc, fireRate, damage, 1200, 5)
+			};
+			specialEnergy = maxSpecialEnergy = 500;
+			specialGuns = new Gun[]{
+					new Gun(new Vector2(105, 89), new Rectangle(185, 87, 50, 4), 0, 5, 1000, 500) // firerate of 0 denotes beam weapon
+			};
+			thrustPositions = new Vector2[]{
+					new Vector2(14, 88)
+			};
+			srcRect = new Rectangle(0, 0, 165, 179);
+			thrustSpriteSrc = new Rectangle(199, 9, 40, 27);
 			break;
 		}
 
 		origin = new Vector2(srcRect.width * .5f, srcRect.height * .5f);
 		// center guns/thrusters
-		for (int i = 0; i < gunPositions.length; i++)
-			gunPositions[i] = gunPositions[i].sub(origin);
+		for (int i = 0; i < guns.length; i++)
+			guns[i].position = guns[i].position.sub(origin);
+		if (specialGuns != null)
+			for (int i = 0; i < specialGuns.length; i++)
+				specialGuns[i].position = specialGuns[i].position.sub(origin);
+		if (turretGuns != null){
+			turretMount = turretMount.sub(origin);
+			for (int i = 0; i < turretGuns.length; i++)
+				turretGuns[i].position = turretGuns[i].position.sub(turretOrigin);
+		}
+		
 		for (int i = 0; i < thrustPositions.length; i++)
 			thrustPositions[i] = thrustPositions[i].sub(origin);
 		
@@ -296,6 +457,9 @@ public class Ship extends Body {
 	public void respawn(){
 		health = maxHealth;
 		shield = maxShield;
+		energy = maxEnergy;
+		specialEnergy = maxSpecialEnergy;
+		rotation = turretRotation = 0;
 		position = new Vector2((float)Math.cos(Math.random() * Math.PI * 2), (float)Math.sin(Math.random() * Math.PI * 2)).mul((float)Math.random() * 1000);
 		velocity = Vector2.Zero();
 		collidable = true;
@@ -392,35 +556,127 @@ public class Ship extends Body {
 	void tryShoot(float delta){
     	Vector2 rot = new Vector2((float)Math.cos(rotation), (float)Math.sin(rotation));
     	
-		if (firing){
-			gunCharge += delta;
-			if (gunCharge >= 1f / fireRate){
-				gunCharge = 0;
-				// fire lasers at gun positions
-	    		for (int i = 0; i < gunPositions.length; i++){
-	        		//Projectile laser = new Projectile(2, damage, new Color(1f, .25f, .25f, 0.75f));
-	        		Projectile laser = new Projectile(2, damage, sprite);
-	        		laser.srcRect = laserSpriteSrc;
-	        		laser.rotation = rotation;
-	        		laser.AlphaDecay = 0;
-	        		laser.SizeDecay = 0;
-	        		laser.radius = 1f;
-	        		laser.mass = .25f;
-	        		laser.velocity = velocity.add(rot.mul(laserSpeed));
-	        		laser.gravity = false;
-	        		laser.removeOnHit = true;
-	        		laser.noHit = new Body[] { this };
-	        		laser.owner = this;
-	        		laser.collidable = false;
-	    			laser.position = position.add(new Vector2(
-						gunPositions[i].x * rot.x - gunPositions[i].y * rot.y, // x*cos(a) - y*sin(a)
-						gunPositions[i].x * rot.y + gunPositions[i].y * rot.x  // x*sin(a) - y*cos(a)
-					));
-	    			Body.addBody(laser);
-	    		}
+		// fire lasers at gun positions
+		for (int i = 0; i < guns.length; i++){
+			if (firing){
+				if (i == cGun){
+					guns[i].charge = Math.min(1f / guns[i].fireRate, guns[i].charge + delta);
+					if ((guns[i].fireRate == 0 && energy > 0) || (guns[i].charge >= 1f / guns[i].fireRate && energy >= guns[i].energyConsumption)){
+						cGun = (cGun + 1) % guns.length;
+						
+						guns[i].charge = 0;
+						
+			    		Projectile laser = new Projectile(2, guns[i].damage, sprite);
+			    		laser.srcRect = guns[i].particleSrc;
+			    		laser.rotation = rotation;
+			    		laser.AlphaDecay = 0;
+			    		laser.SizeDecay = 0;
+			    		laser.radius = 1f;
+			    		laser.mass = .25f;
+			    		laser.velocity = velocity.add(rot.mul(guns[i].laserSpeed));
+			    		laser.gravity = false;
+			    		laser.removeOnHit = true;
+			    		laser.noHit = new Body[] { this };
+			    		laser.owner = this;
+			    		laser.collidable = false;
+						laser.position = position.add(new Vector2(
+							guns[i].position.x * rot.x - guns[i].position.y * rot.y, // x*cos(a) - y*sin(a)
+							guns[i].position.x * rot.y + guns[i].position.y * rot.x  // x*sin(a) - y*cos(a)
+						));
+						Body.addBody(laser);
+						
+						if (guns[i].fireRate == 0)
+							energy -= guns[i].energyConsumption * delta;
+						else
+							energy -= guns[i].energyConsumption;
+					}
+				}
+			}else
+				guns[i].charge = Math.max(0, guns[i].charge - delta);
+		}
+		
+		// fire special guns at gun positions
+		if (specialGuns != null){
+			for (int i = 0; i < specialGuns.length; i++){
+				if (specialFire){
+					specialGuns[i].charge = Math.min(1f / specialGuns[i].fireRate, specialGuns[i].charge + delta);
+					if ((specialGuns[i].fireRate == 0 && specialEnergy > 0) || (specialGuns[i].charge >= 1f / specialGuns[i].fireRate && specialEnergy >= specialGuns[i].energyConsumption)){
+						specialGuns[i].charge = 0;
+						
+			    		Projectile laser = new Projectile(2, specialGuns[i].damage, sprite);
+			    		laser.srcRect = specialGuns[i].particleSrc;
+			    		laser.rotation = rotation;
+			    		laser.AlphaDecay = 0;
+			    		laser.SizeDecay = 0;
+			    		laser.radius = 1f;
+			    		laser.mass = .25f;
+			    		laser.velocity = velocity.add(rot.mul(specialGuns[i].laserSpeed));
+			    		laser.gravity = false;
+			    		laser.removeOnHit = true;
+			    		laser.noHit = new Body[] { this };
+			    		laser.owner = this;
+			    		laser.collidable = false;
+						laser.position = position.add(new Vector2(
+							specialGuns[i].position.x * rot.x - specialGuns[i].position.y * rot.y, // x*cos(a) - y*sin(a)
+							specialGuns[i].position.x * rot.y + specialGuns[i].position.y * rot.x  // x*sin(a) - y*cos(a)
+						));
+						Body.addBody(laser);
+						
+						if (specialGuns[i].fireRate == 0)
+							specialEnergy -= specialGuns[i].energyConsumption * delta;
+						else
+							specialEnergy -= specialGuns[i].energyConsumption;
+					}
+				}else
+					specialGuns[i].charge = Math.max(0, specialGuns[i].charge - delta);
 			}
-		}else
-			gunCharge = 0;
+		}
+		
+		if (turretGuns != null){
+	    	Vector2 trot = new Vector2((float)Math.cos(turretRotation), (float)Math.sin(turretRotation));
+	    	Vector2 p = position.add(new Vector2(
+					turretMount.x * rot.x - turretMount.y * rot.y, // x*cos(a) - y*sin(a)
+					turretMount.x * rot.y + turretMount.y * rot.x  // x*sin(a) - y*cos(a)
+				));
+	    	
+			for (int i = 0; i < turretGuns.length; i++){
+				if (firing){
+					if (i == cTGun){
+						turretGuns[i].charge = Math.min(1f / turretGuns[i].fireRate, turretGuns[i].charge + delta);
+						if ((turretGuns[i].fireRate == 0 && energy > 0) || (turretGuns[i].charge >= 1f / turretGuns[i].fireRate && energy >= turretGuns[i].energyConsumption)){
+							cTGun = (cTGun + 1) % turretGuns.length;
+							
+							turretGuns[i].charge = 0;
+							
+			        		Projectile laser = new Projectile(2, turretGuns[i].damage, sprite);
+			        		laser.srcRect = turretGuns[i].particleSrc;
+			        		laser.rotation = turretRotation;
+			        		laser.AlphaDecay = 0;
+			        		laser.SizeDecay = 0;
+			        		laser.radius = 1f;
+			        		laser.mass = .25f;
+			        		laser.velocity = velocity.add(trot.mul(turretGuns[i].laserSpeed));
+			        		laser.gravity = false;
+			        		laser.removeOnHit = true;
+			        		laser.noHit = new Body[] { this };
+			        		laser.owner = this;
+			        		laser.collidable = false;
+			    			laser.position = p.add(new Vector2(
+								turretGuns[i].position.x * trot.x - turretGuns[i].position.y * trot.y, // x*cos(a) - y*sin(a)
+								turretGuns[i].position.x * trot.y + turretGuns[i].position.y * trot.x  // x*sin(a) - y*cos(a)
+							));
+			    			Body.addBody(laser);
+			    			
+			    			if (turretGuns[i].fireRate == 0)
+			    				energy -= turretGuns[i].energyConsumption * delta;
+			    			else
+			    				energy -= turretGuns[i].energyConsumption;
+						}
+					}
+				} else 
+					turretGuns[i].charge = Math.max(0, turretGuns[i].charge - delta);
+			}
+		}
 	}
 	
 	/**
@@ -463,10 +719,25 @@ public class Ship extends Body {
 				shieldRechargeCooldown -= delta;
 			else
 				shield = Math.min(shield + delta * 50, maxShield);
+			if (energyRechargeCooldown > 0)
+				energyRechargeCooldown -= delta;
+			else
+				energy = Math.min(energy + delta * 50, maxEnergy);
+			if (specialEnergyRechargeCooldown > 0)
+				specialEnergyRechargeCooldown -= delta;
+			else
+				specialEnergy = Math.min(specialEnergy + delta * 50, maxSpecialEnergy);
 			
 	    	tryThrust(delta);
-			tryShoot(delta);
-
+			
+			float eb4 = energy;
+			float seb4 = specialEnergy;
+	    	tryShoot(delta);
+	    	if (eb4 != energy)
+	    		energyRechargeCooldown = 2;
+	    	if (seb4 != specialEnergy)
+	    		specialEnergyRechargeCooldown = 2;
+	    	
 	    	Vector2 dir = new Vector2((float)Math.cos(rotation), (float)Math.sin(rotation)); // current forward direction
 	    	
 	    	float targav = 0;
@@ -481,6 +752,8 @@ public class Ship extends Body {
 	    	}
 	    	
     		angularVelocity = angularVelocity + (targav - angularVelocity) * .25f; // lerp
+    		
+    		turretRotation = (float)Math.atan2(targetDirection.y, targetDirection.x);
 			
 			super.update(delta);
 			
@@ -508,8 +781,6 @@ public class Ship extends Body {
 			AffineTransform before = g2d.getTransform();
 			Composite cbefore = g2d.getComposite();
 			
-			// Draw ship
-			
 			g2d.translate(position.x, position.y);
 			
 			// draw name
@@ -520,23 +791,55 @@ public class Ship extends Body {
 			
 			g2d.rotate(rotation);
 			g2d.translate(-origin.x, -origin.y);
-
-			g2d.drawImage(sprite, 0, 0, srcRect.width, srcRect.height, 0, 0, srcRect.width, srcRect.height, null);
-
+			
 			// draw thrust particles
 			for (int i = 0; i < thrustParticles.size(); i++)
 				thrustParticles.get(i).draw(g2d);
+
+			// draw ship
+			g2d.drawImage(sprite, 0, 0, srcRect.width, srcRect.height, 0, 0, srcRect.width, srcRect.height, null);
+			
+			// draw turret
+			if (turretMount != null){
+				AffineTransform _b4 = g2d.getTransform();
+
+				g2d.translate(turretMount.x + origin.x, turretMount.y + origin.y);
+				g2d.rotate(-rotation + turretRotation);
+				g2d.translate(-turretOrigin.x, -turretOrigin.y);
+				
+				g2d.drawImage(sprite, 0, 0, turretSrc.width, turretSrc.height, turretSrc.x, turretSrc.y, (int)turretSrc.getMaxX(), (int)turretSrc.getMaxY(), null);
+
+				g2d.setTransform(_b4);
+			}
 			
 			g2d.translate(origin.x, origin.y);
 			
-			if (firing){
-				g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, .25f * (float) Math.pow(Math.min(Math.max(gunCharge * fireRate, 0), 1), .9f)));
-				g2d.setColor(new Color(1, .2f, .2f));
-				// draw little charge things
-				for (int i = 0; i < gunPositions.length; i++)
-					g2d.fillOval(//ContentLoader.muzzleFlashTexture,
-							(int)gunPositions[i].x - 5, (int)gunPositions[i].y - 6, 14, 12);
-							//0, 0, 317, 155, null);
+			// draw little charge things
+			g2d.setColor(new Color(1, .2f, .2f));
+			for (int i = 0; i < guns.length; i++){
+				g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, .25f * (float) Math.pow(Math.min(Math.max(guns[i].charge * guns[i].fireRate, 0), 1), .9f)));
+				g2d.fillOval((int)guns[i].position.x - 5, (int)guns[i].position.y - 6, 14, 12);
+			}
+
+			if (specialGuns != null){
+				for (int i = 0; i < specialGuns.length; i++){
+					g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, .25f * (float) Math.pow(Math.min(Math.max(specialGuns[i].charge * specialGuns[i].fireRate, 0), 1), .9f)));
+					g2d.fillOval((int)specialGuns[i].position.x - 5, (int)specialGuns[i].position.y - 6, 14, 12);
+				}
+			}
+			
+			if (turretGuns != null){
+				for (int i = 0; i < turretGuns.length; i++){
+					AffineTransform _b4 = g2d.getTransform();
+	
+					g2d.translate(turretMount.x, turretMount.y);
+					g2d.rotate(-rotation + turretRotation);
+
+					g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, .25f * (float) Math.pow(Math.min(Math.max(turretGuns[i].charge * turretGuns[i].fireRate, 0), 1), .9f)));
+					g2d.fillOval((int)turretGuns[i].position.x - 5, (int)turretGuns[i].position.y - 6, 14, 12);
+					
+					g2d.setTransform(_b4);
+				}
 			}
 			
 			// Draw shield

@@ -353,6 +353,7 @@ public class SpaceGame implements IGame {
 			    	// Move ship
 			    	me.thrusting = Input.MouseButtons[2];
 			    	me.firing = Input.MouseButtons[0];
+			    	me.specialFire = Input.MouseButtons[1];
 	    		}else{
 	    			deathTimer += delta;
 	    			for (int i = 0; i < deadButtons.length; i++)
@@ -665,9 +666,11 @@ public class SpaceGame implements IGame {
 				}
 				// draw HUD
 	        	g2d.setTransform(new AffineTransform());
-    			// HEALTH/SHIELD BARS
+    			// HEALTH/SHIELD/ENERGY BARS
     			float h = me.health / me.maxHealth;
     			float s = me.shield / me.maxShield;
+    			float e = me.energy / me.maxEnergy;
+    			float se = me.specialEnergy / me.maxSpecialEnergy;
     			
     			if (h < .25)
     				g2d.setColor(new Color(.6f, .25f, .25f, .85f));
@@ -677,6 +680,12 @@ public class SpaceGame implements IGame {
     			
 				g2d.setColor(new Color(.25f, .25f, .6f, .85f));
     			g2d.fillRect(Main.ScreenWidth / 2 - 200, (int)(Main.ScreenHeight * .75f) - 12, (int)(400 * s), 10);
+    			
+				g2d.setColor(new Color(1, 1, .25f, .6f));
+    			g2d.fillRect(Main.ScreenWidth / 2 - 200, (int)(Main.ScreenHeight * .75f) - 24, (int)(400 * e), 10);
+    			
+    			g2d.setColor(new Color(.25f, 1, 1, .6f));
+    			g2d.fillRect(Main.ScreenWidth / 2 - 200, (int)(Main.ScreenHeight * .75f) - 36, (int)(400 * se), 10);
     			
     			// SPEED HUD
     			g2d.setFont(menuFontNormal);

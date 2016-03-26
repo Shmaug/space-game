@@ -37,8 +37,6 @@ public class Projectile extends Body {
 		Damage = dmg;
 		
 		curFrame = 0;
-		
-		zIndex = 1; // middle
 	}
 	public Projectile(float life, float dmg, BufferedImage img){
 		super(1, 1);
@@ -56,8 +54,6 @@ public class Projectile extends Body {
 		Damage = dmg;
 		
 		curFrame = 0;
-		
-		zIndex = 1; // middle
 	}
 	
 	@Override

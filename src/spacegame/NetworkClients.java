@@ -70,9 +70,11 @@ class ServerClient extends NetworkClient {
 					byte tf = 0;
 					if (Ship.ships[i].thrusting) tf |= 1;
 					if (Ship.ships[i].firing) tf |= 2;
+					if (Ship.ships[i].specialFire) tf |= 4;
 					dOut.writeByte(tf);
 					dOut.writeFloat(Ship.ships[i].health);
 					dOut.writeFloat(Ship.ships[i].shield);
+					dOut.writeFloat(Ship.ships[i].turretRotation);
 				}
 			}
 			dOut.writeInt(-1);
@@ -136,6 +138,7 @@ class ServerClient extends NetworkClient {
 			byte thrustFire = dIn.readByte();
 			float health = dIn.readFloat();
 			float shield = dIn.readFloat();
+			float trot = dIn.readFloat();
 			
 			if (ship != null && ship.id != SpaceGame.myShip){ // because the server still has a client with the same Ship.ships
 				ship.position = pos;
@@ -144,8 +147,10 @@ class ServerClient extends NetworkClient {
 				ship.angularVelocity = angvel;
 				ship.thrusting = (thrustFire & 1) > 0;
 				ship.firing = (thrustFire & 2) > 0;
+				ship.specialFire = (thrustFire & 4) > 0;
 				ship.health = health;
 				ship.shield = shield;
+				ship.turretRotation = trot;
 			}
 			
 			TimeItTakesForAPacketToGetToTheServerFromTheClient = System.currentTimeMillis() - dIn.readLong();
@@ -253,9 +258,11 @@ class LocalClient extends NetworkClient {
 			byte tf = 0;
 			if (ship.thrusting) tf |= 1;
 			if (ship.firing) tf |= 2;
+			if (ship.specialFire) tf |= 4;
 			dOut.writeByte(tf);
 			dOut.writeFloat(ship.health);
 			dOut.writeFloat(ship.shield);
+			dOut.writeFloat(ship.turretRotation);
 			
 			dOut.writeLong(System.currentTimeMillis()); // timestamp
 			break;
@@ -298,6 +305,7 @@ class LocalClient extends NetworkClient {
 				byte thrustFire = dIn.readByte();
 				float health = dIn.readFloat();
 				float shield = dIn.readFloat();
+				float trot = dIn.readFloat();
 
 				if (Ship.ships[i] != ship){
 					Ship.ships[i].position = pos;
@@ -306,8 +314,10 @@ class LocalClient extends NetworkClient {
 					Ship.ships[i].angularVelocity = angvel;
 					Ship.ships[i].thrusting = (thrustFire & 1) > 0;
 					Ship.ships[i].firing = (thrustFire & 2) > 0;
+					Ship.ships[i].specialFire = (thrustFire & 4) > 0;
 					Ship.ships[i].health = health;
 					Ship.ships[i].shield = shield;
+					Ship.ships[i].turretRotation = trot;
 				}
 			}
 			TimeItTakesForAPacketToGetToTheClientFromTheServer = System.currentTimeMillis() - dIn.readLong();
@@ -426,7 +436,6 @@ class LocalClient extends NetworkClient {
 								b.anchored = dIn.readBoolean();
 								b.collidable = dIn.readBoolean();
 								b.gravity = dIn.readBoolean();
-								b.zIndex = dIn.readInt();
 								Body.bodies[i] = b;
 							}
 						}

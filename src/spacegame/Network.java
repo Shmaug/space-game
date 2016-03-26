@@ -321,7 +321,6 @@ class NetworkServer{
 												dOut.writeBoolean(b.anchored);
 												dOut.writeBoolean(b.collidable);
 												dOut.writeBoolean(b.gravity);
-												dOut.writeInt(b.zIndex);
 											}
 										}
 										dOut.writeInt(-1);
